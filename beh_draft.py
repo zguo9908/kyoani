@@ -1,7 +1,7 @@
 import os
 
 from animal import Animal
-
+from session import Session
 
 class BehaviorAnalysis:
 
@@ -13,7 +13,8 @@ class BehaviorAnalysis:
         self.animal_num = len(self.animal_list)
         self.mice = [] # this stores the animal object
 
-    def allSession(self):
+
+    def allAnimal(self):
         for i in range(self.animal_num):
             animal = self.animal_list[i]
             curr_animal = Animal(animal)
@@ -21,9 +22,11 @@ class BehaviorAnalysis:
             curr_path = self.path + "\\" + animal
             os.chdir(curr_path)
             session_list = os.listdir()
-
             # filter all the items that are regular
             sessions = [session for session in session_list if self.task_type in session]
-            session_num = len(sessions)
+            curr_animal.sessions = sessions
 
-            for j in range(session_num):
+            curr_animal.allSession(curr_path)
+            print(f'processing all sessions for mice {animal}')
+
+        return self.mice
