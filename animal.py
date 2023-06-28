@@ -43,7 +43,7 @@ class Animal:
 
     def allSession(self, path):
         self.session_num = len(self.sessions)
-        print(self.session_num)
+        # print(self.session_num)
         for j in range(self.session_num):
             curr_session_path = path + '\\' + self.sessions[j]
             os.chdir(curr_session_path)

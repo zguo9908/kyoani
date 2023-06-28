@@ -8,25 +8,27 @@ import matplotlib.animation as animation
 import matplotlib.colors as colors
 
 
-path = os.path.normpath(r'D:\figures\behplots')
-os.chdir(path)
+
 
 
 def set_axis_style(ax, labels):
     ax.set_xticks(np.arange(1, len(labels) + 1), labels=labels)
     ax.set_xlim(0.25, len(labels) + 0.75)
 
-def rawPlots(mice):
-    animal_num = len(mice)
-    for i in range(animal_num):
+def rawPlots(mice, task_params):
+    path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
+    os.chdir(path)
+    print(f'plotting and saving in {path}')
+    for i in range(len(mice)):
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].holding_s_blk, 'bo')
         plt.plot(mice[i].holding_l_blk, 'ro')
         ax.set_title(f'{mice[i].name} holding times')
         ax.set_xlabel("session")
-        ax.set_ylabel("holing time(s)")
+        ax.set_ylabel("holding time(s)")
         ax.legend(['short', 'long'])
-        plt.savefig('ex1.svg')
+        plt.savefig(f'{mice[i].name}_holding_times.svg')
+        plt.cla()
 
         fig, ax = plt.subplots(figsize=(10, 5))
         ax.set_title(f'{mice[i].name} holding - optimal time')
@@ -35,8 +37,9 @@ def rawPlots(mice):
         ax.legend(['short', 'long'])
         ax.set_xlabel("session")
         ax.set_ylabel("avg licking - optimal(s)")
-        if i == 2:
-            plt.savefig('ex1.svg')
+        plt.savefig(f'{mice[i].name} avg licking - optimal.svg')
+        plt.cla()
+
         #     locs, labels = plt.xticks()
         #     plt.xticks(np.arange(4), block_type)
         fig, ax = plt.subplots(figsize=(10, 5))
@@ -46,6 +49,9 @@ def rawPlots(mice):
         ax.set_xlabel("session")
         ax.set_ylabel("%")
         ax.legend(['short', 'long'])
+        plt.savefig(f'{mice[i].name} perc trial rewarded.svg')
+        plt.cla()
+
 
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].lick_prob_s, 'b-')
@@ -54,6 +60,9 @@ def rawPlots(mice):
         ax.set_xlabel("session")
         ax.set_ylabel("%")
         ax.legend(['short', 'long'])
+        plt.savefig(f'{mice[i].name}_prob_at_licking.svg')
+        plt.cla()
+
 
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].moving_average_s, 'bo')
@@ -63,6 +72,9 @@ def rawPlots(mice):
         ax.set_ylabel("holing time(s)")
         ax.legend(['short', 'long'])
         plt.axis([1400, 2000, 0, 13])
+        plt.savefig(f'{mice[i].name}_moving_avg_perf.svg')
+        plt.cla()
+
 
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].holding_s_by_block, 'bo')
@@ -71,6 +83,9 @@ def rawPlots(mice):
         ax.set_xlabel("block")
         ax.set_ylabel("holing time(s)")
         ax.legend(['short', 'long'])
+        plt.savefig(f'{mice[i].name}_holding_times_by_block.svg')
+        plt.cla()
+
 
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].blk_miss_perc_s, 'b+')
@@ -79,6 +94,9 @@ def rawPlots(mice):
         ax.set_xlabel("block")
         ax.set_ylabel("%")
         ax.legend(['short', 'long'])
+        plt.savefig(f'{mice[i].name}_missed_trials_perc.svg')
+        plt.cla()
+
 
         fig = plt.figure(facecolor=(1, 1, 1))
         # Create an axes instance
@@ -97,4 +115,4 @@ def rawPlots(mice):
         labels = ['short', 'long']
         set_axis_style(ax, labels)
 
-        plt.savefig(f'violin + {mice[i].name}.svg', bbox_inches='tight')
+        plt.savefig(f'violin_{mice[i].name}.svg', bbox_inches='tight')

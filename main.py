@@ -11,7 +11,6 @@ def main():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    beh = BehaviorAnalysis(task_type="regular")
+    beh = BehaviorAnalysis(task_type="regular", task_params="curr_params")
     mice = beh.allAnimal()
-    print(mice[0].name)
-    plots.rawPlots(mice)
+    plots.rawPlots(mice, task_params="curr_params")

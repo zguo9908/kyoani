@@ -5,9 +5,10 @@ from session import Session
 
 class BehaviorAnalysis:
 
-    def __init__(self, task_type):
+    def __init__(self, task_type, task_params):
         self.task_type = task_type
-        self.path = os.path.normpath(r'D:\behavior_data\curr_params')
+        self.path = os.path.normpath(r'D:\behavior_data') + "\\" + task_params
+        print(self.path)
         os.chdir(self.path)
         self.animal_list = os.listdir()
         self.animal_num = len(self.animal_list)
@@ -25,8 +26,8 @@ class BehaviorAnalysis:
             # filter all the items that are regular
             sessions = [session for session in session_list if self.task_type in session]
             curr_animal.sessions = sessions
+            print(f'processing all sessions for mice {animal}')
 
             curr_animal.allSession(curr_path)
-            print(f'processing all sessions for mice {animal}')
 
         return self.mice
