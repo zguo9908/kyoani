@@ -1,22 +1,27 @@
 # single session data parsing tool
 import math
 import os
+import statistics
 from statistics import mean
 
+import numpy
 import numpy as np
 import pandas as pd
 
 #from animal import Animal
 
-global optimal_wait
-optimal_wait = [1.74, 3.45]
-# 1.74, 3.45
-# 1.52, 2.93
-
 class Session:
-    def __init__(self, animal, file_path):
+    def __init__(self, animal, file_path, task_params):
         # within session lists
         self.animal = animal
+        self.file_path = file_path
+        self.task_params = task_params
+
+        if task_params == "curr_params":
+            self.optimal_wait = [1.74, 3.45]
+        elif task_params == "old_params":
+            self.optimal_wait = [1.52, 2.93]
+
         self.block_type = []
         self.holding = []  # avg time of holding licks for all blocks
         self.holding_s = []  # avg time of holding licks during s blocks
@@ -32,7 +37,13 @@ class Session:
 
         self.prob_at_lick_s = []
         self.prob_at_lick_l = []
-        self.file_path = file_path
+
+        self.blk_start_var = []  # variance of waiting time for the last 10 trials before block switch
+        self.blk_end_var = []  # variance of waiting time for the first 10 trials after block switch
+        self.blk_window = 10
+
+        self.blk_start_slope = []
+        self.blk_end_slope = []
 
     def parseSessionStats(self):
         session_data = pd.read_csv(self.file_path, skiprows=3)
@@ -49,6 +60,7 @@ class Session:
 
             # find number of trials in this block
             blk_trial_num = max(curr_blk.session_trial_num) - min(curr_blk.session_trial_num) + 1
+
             blk_rewarded_trial = curr_blk.loc[(curr_blk['key'] == 'reward') & (curr_blk['value'] == 1)]
             blk_rewarded_trial_num = len(blk_rewarded_trial)
             perc_rewarded_perf = blk_rewarded_trial_num / blk_trial_num
@@ -70,7 +82,7 @@ class Session:
                                      (blk_cp['next_state'] == 'trial_ends') &
                                      (blk_cp['key'] == 'wait')]
             #             print(len(miss_trials))
-            print(blk_trial_num)
+            #print(blk_trial_num)
             blk_missed_perc = len(miss_trials) / blk_trial_num
 
             prob_rewarded_licks = blk_cp['curr_reward_prob']
@@ -79,10 +91,10 @@ class Session:
             #             print(mean_prob_at_lick )
 
             if curr_blk_mean_reward_time == 3:
-                curr_opt_wait = optimal_wait[1]
+                curr_opt_wait = self.optimal_wait[1]
                 self.block_type.append('l')
             elif curr_blk_mean_reward_time == 1:
-                curr_opt_wait = optimal_wait[0]
+                curr_opt_wait = self.optimal_wait[0]
                 self.block_type.append('s')
             else:
                 break
@@ -91,6 +103,18 @@ class Session:
                 licks = curr_licks_during_wait.curr_wait_time
                 #                 all_holding_diff = licks - curr_opt_wait
                 #                 all_holding_perf = 1-abs(all_holding_diff)/curr_opt_wait
+
+                # variance and linear fit slope for first and last 10 trials in each block.
+                if len(licks) >= 10 and blk_trial_num >= 10:
+                    blk_start_trials = licks[:self.blk_window]
+                    blk_end_trials = licks[-self.blk_window:]
+                    # print(len(licks))
+                    # print(len(blk_start_trials))
+                    self.blk_start_var.append(statistics.variance(blk_start_trials))
+                    self.blk_end_var.append(statistics.variance(blk_end_trials))
+
+                    self.blk_start_slope.append(np.polyfit(range(0, len(blk_start_trials)), blk_start_trials, 1))
+                    self.blk_end_slope.append(np.polyfit(range(0, len(blk_end_trials)), blk_end_trials, 1))
 
                 # block mean analysis
                 lick_mean = licks.mean()
@@ -172,3 +196,10 @@ class Session:
             self.animal.lick_prob_l.append(mean(self.prob_at_lick_l))
         else:
             self.animal.lick_prob_l.append(np.nan)
+
+        if len(self.blk_start_var) > 0:
+            self.animal.blk_start_var.extend(x for x in self.blk_start_var if not math.isnan(x))
+            self.animal.blk_end_var.extend(x for x in self.blk_end_var if not math.isnan(x))
+            self.animal.blk_start_slope.append(self.blk_start_slope)
+            self.animal.blk_end_slope.append(self.blk_end_slope)
+
