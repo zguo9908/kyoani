@@ -1,5 +1,7 @@
 # class Animal holds relevant information about a mouse
 import os
+import statistics
+
 from session import Session
 
 
@@ -36,8 +38,15 @@ class Animal:
         self.blk_miss_perc_s = []
         self.blk_miss_perc_l = []
 
+        self.sl_blk_start_var = []
+        self.ls_blk_start_var = []
+        self.sl_blk_end_var = []
+        self.ls_blk_end_var = []
+
         self.moving_average_s = []  # waiting time across all trials smoothed by a window size
         self.moving_average_l = []
+        self.moving_average_s_var = []
+        self.moving_average_l_var = []
 
         self.stable_s = []  # times were performance was stable (mean across a window
         self.stable_l = []
@@ -67,14 +76,15 @@ class Animal:
         while i < len(curr_all_s) - window_size + 1:
             window = curr_all_s[i: i + window_size]
             window_average = round(sum(window) / window_size, 2)
-            #         print(window_average)
             self.moving_average_s.append(window_average)
+            self.moving_average_s_var.append(statistics.variance(window))
             i += 1
         i = 0
         while i < len(curr_all_l) - window_size + 1:
             window = curr_all_l[i: i + window_size]
             window_average = round(sum(window) / window_size, 2)
             self.moving_average_l.append(window_average)
+            self.moving_average_l_var.append(statistics.variance(window))
             i += 1
 
     # this function will compute block waiting time average as training goes

@@ -21,6 +21,9 @@ elif task_params == "old_params":
 
 if __name__ == '__main__':
     beh = BehaviorAnalysis(optimal_wait, task_type=task_type, task_params=task_params)
+
     mice = beh.allAnimal()
-   # plots.rawPlots(mice, task_params=task_params, saving=False)
+
+    beh.testBlockDiff()
+    plots.rawPlots(mice, task_params=task_params, saving=True)
     plots.violins(mice, task_params=task_params, saving=True)

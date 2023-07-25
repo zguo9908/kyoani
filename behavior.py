@@ -1,3 +1,4 @@
+import math
 import os
 
 from animal import Animal
@@ -17,7 +18,17 @@ class BehaviorAnalysis:
         self.mice = [] # this stores the animal object
 
         self.block_diff = []
-        self.table_block_diff = []
+        self.stable_block_diff = []
+
+    def getStableTimes(self, mouse):
+        for j in range(len(mouse.moving_average_s_var)):
+            if not math.isnan(mouse.moving_average_s_var[j]) and mouse.moving_average_s_var[j]< 1:
+                mouse.stable_s.append(mouse.moving_average_s[j])
+
+        for k in range(len(mouse.moving_average_l_var)):
+            if not math.isnan(mouse.moving_average_l_var[k]) and mouse.moving_average_l_var[k] < 1:
+                mouse.stable_l.append(mouse.moving_average_l[k])
+        print(len(mouse.stable_l))
 
     def allAnimal(self):
         for i in range(self.animal_num):
@@ -34,9 +45,11 @@ class BehaviorAnalysis:
             curr_animal.allSession(curr_path)
             print(f'processing all sessions for mice {animal}')
             curr_animal.getMovingAvg(window_size=8)
-            self.mice[i].stable_s = [s for s in self.mice[i].moving_average_s if s > self.optimal_wait[0]]
-            self.mice[i].stable_l = [l for l in self.mice[i].moving_average_l if l > self.optimal_wait[1]]
-            print(len(self.mice[i].stable_s))
+            curr_animal.getBlockWaiting()
+            self.getStableTimes(curr_animal)
+            # self.mice[i].stable_s = [s for s in self.mice[i].moving_average_s if s > self.optimal_wait[0]]
+            # self.mice[i].stable_l = [l for l in self.mice[i].moving_average_l if l > self.optimal_wait[1]]
+            print(len(curr_animal.stable_s))
         return self.mice
 
 
@@ -47,9 +60,8 @@ class BehaviorAnalysis:
     def testBlockDiff(self):
         # make loop
         for i in range(self.animal_num):
-            t_stat, p_value = ttest_ind(self.mice[i].stable_s_time, self.mice[i].stable_l_time)
+            t_stat, p_value = ttest_ind(self.mice[i].stable_s, self.mice[i].stable_l)
             self.stable_block_diff.append(p_value)
-
             t_stat, p_value = ttest_ind(self.mice[i].blk_holding_s, self.mice[i].blk_holding_l)
             self.block_diff.append(p_value)
         print("p-vals for different blocks are")

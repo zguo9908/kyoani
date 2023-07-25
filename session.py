@@ -13,6 +13,7 @@ import pandas as pd
 class Session:
     def __init__(self, animal, file_path, task_params):
         # within session lists
+
         self.animal = animal
         self.file_path = file_path
         self.task_params = task_params
@@ -23,6 +24,7 @@ class Session:
             self.optimal_wait = [1.52, 2.93]
 
         self.block_type = []
+        self.valid_block_type = []
         self.holding = []  # avg time of holding licks for all blocks
         self.holding_s = []  # avg time of holding licks during s blocks
         self.holding_l = []  # avg time of holding licks during l blocks
@@ -40,7 +42,10 @@ class Session:
 
         self.blk_start_var = []  # variance of waiting time for the last 10 trials before block switch
         self.blk_end_var = []  # variance of waiting time for the first 10 trials after block switch
-        self.blk_window = 10
+
+
+
+        self.blk_window = 5
 
         self.blk_start_slope = []
         self.blk_end_slope = []
@@ -106,6 +111,7 @@ class Session:
 
                 # variance and linear fit slope for first and last 10 trials in each block.
                 if len(licks) >= 10 and blk_trial_num >= 10:
+                    self.valid_block_type.append(self.block_type[k-1])
                     blk_start_trials = licks[:self.blk_window]
                     blk_end_trials = licks[-self.blk_window:]
                     # print(len(licks))
@@ -198,8 +204,36 @@ class Session:
             self.animal.lick_prob_l.append(np.nan)
 
         if len(self.blk_start_var) > 0:
-            self.animal.blk_start_var.extend(x for x in self.blk_start_var if not math.isnan(x))
+            print(f"number of start var {self.blk_start_var}")
+            valid_start_var = [x for x in self.blk_start_var if not math.isnan(x)]
+            print(np.count_nonzero(np.isnan(self.blk_start_var)))
+            valid_end_var = [x for x in self.blk_end_var if not math.isnan(x)]
+            print(np.count_nonzero(np.isnan(self.blk_end_var)))
+            self.animal.blk_start_var.extend(valid_start_var)
             self.animal.blk_end_var.extend(x for x in self.blk_end_var if not math.isnan(x))
             self.animal.blk_start_slope.append(self.blk_start_slope)
             self.animal.blk_end_slope.append(self.blk_end_slope)
+            num_block = len(self.block_type)
+            # print(f"number of valid start var {len(valid_start_var)}")
+            # print(f"number of valid blocks {len(self.valid_block_type)}")
+            print(self.valid_block_type)
+            for i in range(0, len(self.valid_block_type)-1):
+                # print(f"i is now {i}")
+                # interested in start var for all blks except the first one
+                if i >= 1 and self.block_type[i] == "s":
+                    # print(f"{i} block l-s start")
+                    self.animal.ls_blk_start_var.append(valid_start_var[i])
+                elif i >= 1 and self.block_type[i] == "l":
+                    # print(f"{i} block s-l start")
+                    self.animal.sl_blk_start_var.append(valid_start_var[i])
+
+                if i < num_block-1 and self.block_type[i] == "s":
+                    # print(f"{i} block s-l end")
+                    self.animal.sl_blk_end_var.append(valid_end_var[i])
+                elif i < num_block-1 and self.block_type[i] == "l":
+                    # print(f"{i} block l-s end")
+                    self.animal.ls_blk_end_var.append(valid_end_var[i])
+
+
+
 

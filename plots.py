@@ -2,7 +2,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Patch
+import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
 import matplotlib.colors as colors
@@ -26,7 +26,7 @@ def rawPlots(mice, task_params, saving):
         ax.set_ylabel("holding time(s)")
         ax.legend(['short', 'long'])
         plt.savefig(f'{mice[i].name}_holding_times.svg')
-        plt.cla()
+        plt.close()
 
         fig, ax = plt.subplots(figsize=(10, 5))
         ax.set_title(f'{mice[i].name} holding - optimal time')
@@ -36,7 +36,7 @@ def rawPlots(mice, task_params, saving):
         ax.set_xlabel("session")
         ax.set_ylabel("avg licking - optimal(s)")
         plt.savefig(f'{mice[i].name} avg licking - optimal.svg')
-        plt.cla()
+        plt.close()
 
         #     locs, labels = plt.xticks()
         #     plt.xticks(np.arange(4), block_type)
@@ -49,7 +49,7 @@ def rawPlots(mice, task_params, saving):
         ax.legend(['short', 'long'])
         if saving:
             plt.savefig(f'{mice[i].name} perc trial rewarded.svg')
-        plt.cla()
+        plt.close()
 
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].lick_prob_s, 'b-')
@@ -60,7 +60,7 @@ def rawPlots(mice, task_params, saving):
         ax.legend(['short', 'long'])
         if saving:
             plt.savefig(f'{mice[i].name}_prob_at_licking.svg')
-        plt.cla()
+        plt.close()
 
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].moving_average_s, 'bo')
@@ -72,7 +72,7 @@ def rawPlots(mice, task_params, saving):
         plt.axis([1400, 2000, 0, 13])
         if saving:
             plt.savefig(f'{mice[i].name}_moving_avg_perf.svg')
-        plt.cla()
+        plt.close()
 
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].holding_s_by_block, 'bo')
@@ -83,7 +83,7 @@ def rawPlots(mice, task_params, saving):
         ax.legend(['short', 'long'])
         if saving:
             plt.savefig(f'{mice[i].name}_holding_times_by_block.svg')
-        plt.cla()
+        plt.close()
 
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].blk_miss_perc_s, 'b+')
@@ -94,7 +94,7 @@ def rawPlots(mice, task_params, saving):
         ax.legend(['short', 'long'])
         if saving:
             plt.savefig(f'{mice[i].name}_missed_trials_perc.svg')
-        plt.cla()
+        plt.close()
 
         # fig, ax = plt.subplots(figsize=(10, 5))
         # plt.plot(mice[i].blk_start_var, 'b+')
@@ -108,6 +108,7 @@ def rawPlots(mice, task_params, saving):
         # plt.cla()
 
         # create large violin for all animal
+
 
 
 def violins(mice, task_params, saving):
@@ -131,14 +132,14 @@ def violins(mice, task_params, saving):
     bp = ax.violinplot(violin_vars, showmeans=True)
     for i, pc in enumerate(bp["bodies"], 1):
         if i % 2 != 0:
-            pc.set_facecolor('blue')
+            pc.set_facecolor('yellow')
         else:
-            pc.set_facecolor('red')
+            pc.set_facecolor('green')
     set_axis_style(ax, labels)
     if saving:
         print("saving violin plot")
         plt.savefig(f'violin_var.svg', bbox_inches='tight')
-    plt.cla()
+    plt.close()
 
 
     violin_times = []
@@ -165,13 +166,16 @@ def violins(mice, task_params, saving):
     set_axis_style(ax, labels)
     if saving:
         plt.savefig(f'violin_time.svg', bbox_inches='tight')
-    plt.cla()
+    plt.close()
 
     violin_stable_times = []
     labels = []
     for i in range(len(mice)):
         violin_stable_times.append(mice[i].stable_s)
+        print(len(mice[i].stable_s))
         violin_stable_times.append(mice[i].stable_l)
+        # violin_stable_times.append(mice[i].moving_average_s)
+        # violin_stable_times.append(mice[i].moving_average_l)
         labels.append(f'{mice[i].name} s')
         labels.append(f'{mice[i].name} l')
 
@@ -191,4 +195,67 @@ def violins(mice, task_params, saving):
     set_axis_style(ax, labels)
     if saving:
         plt.savefig(f'violin_stable_time.svg', bbox_inches='tight')
-    plt.cla()
+    plt.close()
+
+    violin_moving_var = []
+    labels = []
+    for i in range(len(mice)):
+        violin_moving_var.append(mice[i].moving_average_s_var)
+        violin_moving_var.append(mice[i].moving_average_l_var)
+        labels.append(f'{mice[i].name} s')
+        labels.append(f'{mice[i].name} l')
+
+    fig = plt.figure(facecolor=(1, 1, 1))
+    # Create an axes instance
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlabel('trial type')
+    ax.set_ylabel('variance')
+    # Create the boxplot
+    bp = ax.violinplot(violin_moving_var, showmeans=True)
+    for i, pc in enumerate(bp["bodies"], 1):
+        if i % 2 != 0:
+            pc.set_facecolor('blue')
+        else:
+            pc.set_facecolor('red')
+
+    set_axis_style(ax, labels)
+    if saving:
+        plt.savefig(f'violin_moving_var.svg', bbox_inches='tight')
+    plt.close()
+
+
+
+    for i in range(len(mice)):
+        violin_var_split = []
+        labels = []
+        violin_var_split.append(mice[i].sl_blk_start_var)
+        violin_var_split.append(mice[i].ls_blk_start_var)
+        violin_var_split.append(mice[i].sl_blk_end_var)
+        violin_var_split.append(mice[i].ls_blk_end_var)
+
+        labels.append(f'{mice[i].name} s-l starts')
+        labels.append(f'{mice[i].name} l-s starts')
+        labels.append(f'{mice[i].name} s-l ends')
+        labels.append(f'{mice[i].name} l-s ends')
+
+        fig = plt.figure(facecolor=(1, 1, 1))
+        # Create an axes instance
+        ax = fig.add_axes([0, 0, 1, 1])
+        ax.set_xlabel('block transition type')
+        ax.set_ylabel('waiting time variance')
+        # Create the boxplot
+        bp = ax.violinplot(violin_var_split, showmeans=True)
+        for j, pc in enumerate(bp["bodies"], 1):
+            if j % 1 == 0:
+                pc.set_facecolor('yellow')
+            elif j % 2 == 0:
+                pc.set_facecolor('green')
+            elif j % 3 == 0:
+                pc.set_facecolor('blue')
+            else:
+                pc.set_facecolor('red')
+
+        set_axis_style(ax, labels)
+        if saving:
+            plt.savefig(f'{mice[i].name}_violin_var_split.svg', bbox_inches='tight')
+        plt.close()
