@@ -56,6 +56,11 @@ class Animal:
         self.blk_start_slope = []
         self.blk_end_slope = []
 
+        self.bg_restart_s = []
+        self.bg_restart_l = []
+        self.bg_restart_s_blk = []
+        self.bg_restart_l_blk = []
+        self.session_list = []
     def allSession(self, path):
         self.session_num = len(self.sessions)
         # print(self.session_num)
@@ -66,6 +71,7 @@ class Animal:
             curr_session = Session(self, file_path, self.task_params)
             curr_session.parseSessionStats()
             curr_session.updateSessionStats()
+            self.session_list.append(curr_session)
 
     # this function will take moving average across windows of trials
     def getMovingAvg(self, window_size):

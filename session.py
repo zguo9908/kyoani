@@ -43,12 +43,18 @@ class Session:
         self.blk_start_var = []  # variance of waiting time for the last 10 trials before block switch
         self.blk_end_var = []  # variance of waiting time for the first 10 trials after block switch
 
-
+        self.session_reward_rate = []
+        self.session_holding_times = []
 
         self.blk_window = 5
 
+        self.bg_repeats_s = []
+        self.bg_repeats_l = []
+
         self.blk_start_slope = []
         self.blk_end_slope = []
+
+        self.animal.holding_diff = []
 
     def parseSessionStats(self):
         session_data = pd.read_csv(self.file_path, skiprows=3)
@@ -57,7 +63,9 @@ class Session:
         # find block switches
 
         session_data['blk_change'] = session_data.loc[:, 'block_num'].diff()
+        session_data['total_volume_received'] = session_data['total_reward']*5
         session_blks = session_data[session_data['blk_change'] != 0]
+        self.session_reward_rate = session_data['total_volume_received'].div(session_data['curr_trial_time'])
 
         for k in range(1, session_blks.shape[0] - 1):
             #             print(f'{i}+{j}+{k}')
@@ -86,9 +94,33 @@ class Session:
             miss_trials = blk_cp.loc[(blk_cp['state'] == 'in_wait') &
                                      (blk_cp['next_state'] == 'trial_ends') &
                                      (blk_cp['key'] == 'wait')]
+
+            lick_at_bg = blk_cp.loc[((blk_cp['state'] == 'in_background') &
+                                     (blk_cp['key'] == 'lick') &
+                                     (blk_cp['value'] == 1))]
+
+            trials_lick_at_bg = lick_at_bg.drop_duplicates(subset=['session_trial_num'])
+            blk_bg_repeat_perc = len(trials_lick_at_bg) / blk_trial_num
+            # print(f'number of trials with repeat bg triggers{len(trials_lick_at_bg)}')
             #             print(len(miss_trials))
-            #print(blk_trial_num)
             blk_missed_perc = len(miss_trials) / blk_trial_num
+            repeat_counts = lick_at_bg['session_trial_num'].value_counts()
+            # print(repeat_counts)
+            counts_column = repeat_counts.values
+            # Calculate the average
+            average_repeats = counts_column.mean()
+            print("Average number of repeats: ", average_repeats)
+
+            exclude_values = trials_lick_at_bg['session_trial_num']
+            # print(len(exclude_values))
+            good_trials = blk_cp[~blk_cp['session_trial_num'].isin(exclude_values)]
+            good_trials_num = len(good_trials.drop_duplicates(subset=['session_trial_num']))
+            # print("number of good trials: ", len(good_trials))
+            # good_trials = blk_cp[exclude_condition].drop_duplicates(subset=['session_trial_num'])
+
+            # print(len(good_trials))
+            # print(len(trials_lick_at_bg))
+            print(blk_trial_num == good_trials_num + len(trials_lick_at_bg))
 
             prob_rewarded_licks = blk_cp['curr_reward_prob']
             prob_rewarded_licks = prob_rewarded_licks.astype('float')
@@ -108,7 +140,7 @@ class Session:
                 licks = curr_licks_during_wait.curr_wait_time
                 #                 all_holding_diff = licks - curr_opt_wait
                 #                 all_holding_perf = 1-abs(all_holding_diff)/curr_opt_wait
-
+                self.session_holding_times.append(licks)
                 # variance and linear fit slope for first and last 10 trials in each block.
                 if len(licks) >= 10 and blk_trial_num >= 10:
                     self.valid_block_type.append(self.block_type[k-1])
@@ -129,7 +161,7 @@ class Session:
                 mean_lick_diff = lick_diff.mean()
                 self.opt_diff.append(mean_lick_diff)
 
-                # perforamce for holding lick
+                # performance for holding lick
                 holding_perf = 1 - abs(mean_lick_diff) / curr_opt_wait
 
                 if self.block_type[k - 1] == 's':
@@ -138,6 +170,7 @@ class Session:
                     self.opt_diff_s.append(mean_lick_diff)
                     self.perc_rewarded_s.append(perc_rewarded_perf)
                     self.prob_at_lick_s.append(mean_prob_at_lick)
+                    self.bg_repeats_s.append(blk_bg_repeat_perc)
                     if not math.isnan(holding_perf):
                         self.animal.holding_perf_s.append(holding_perf)
                     else:
@@ -152,6 +185,8 @@ class Session:
                     self.opt_diff_l.append(mean_lick_diff)
                     self.perc_rewarded_l.append(perc_rewarded_perf)
                     self.prob_at_lick_l.append(mean_prob_at_lick)
+                    self.bg_repeats_l.append(blk_bg_repeat_perc)
+
                     if not math.isnan(holding_perf):
                         self.animal.holding_perf_l.append(holding_perf)
                     else:
@@ -164,6 +199,7 @@ class Session:
             else:
                 break
 
+
     def updateSessionStats(self):
         if len(self.holding_s) > 0:
             self.animal.blk_holding_s.extend(x for x in self.holding_s if not math.isnan(x))
@@ -175,6 +211,16 @@ class Session:
             self.animal.holding_l_blk.append(mean(self.holding_l))
         else:
             self.animal.holding_l_blk.append(np.nan)
+
+        if not np.isnan(self.animal.holding_l_blk).any() and not np.isnan(self.animal.holding_s_blk).any():
+            self.animal.holding_diff.append(self.animal.holding_s_blk[-1] - self.animal.holding_l_blk[-1])
+        self.animal.bg_restart_s_blk.extend(self.bg_repeats_s)
+        self.animal.bg_restart_l_blk.extend(self.bg_repeats_l)
+        self.animal.bg_restart_s.append(mean(self.bg_repeats_s))
+        self.animal.bg_restart_l.append(mean(self.bg_repeats_l))
+
+
+
         if len(self.opt_diff_s) > 0:
             self.animal.opt_diff_s.append(mean(self.opt_diff_s))
         else:
@@ -204,11 +250,11 @@ class Session:
             self.animal.lick_prob_l.append(np.nan)
 
         if len(self.blk_start_var) > 0:
-            print(f"number of start var {self.blk_start_var}")
+            # print(f"number of start var {self.blk_start_var}")
             valid_start_var = [x for x in self.blk_start_var if not math.isnan(x)]
-            print(np.count_nonzero(np.isnan(self.blk_start_var)))
+            # print(np.count_nonzero(np.isnan(self.blk_start_var)))
             valid_end_var = [x for x in self.blk_end_var if not math.isnan(x)]
-            print(np.count_nonzero(np.isnan(self.blk_end_var)))
+            # print(np.count_nonzero(np.isnan(self.blk_end_var)))
             self.animal.blk_start_var.extend(valid_start_var)
             self.animal.blk_end_var.extend(x for x in self.blk_end_var if not math.isnan(x))
             self.animal.blk_start_slope.append(self.blk_start_slope)

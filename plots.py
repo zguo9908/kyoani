@@ -18,6 +18,10 @@ def rawPlots(mice, task_params, saving):
     os.chdir(path)
     print(f'plotting and saving in {path}')
     for i in range(len(mice)):
+        curr_animal_path = path + '\\' + mice[i].name
+        os.chdir(curr_animal_path)
+        file_path = curr_animal_path + '\\' + os.listdir()[0]
+
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].holding_s_blk, 'bo')
         plt.plot(mice[i].holding_l_blk, 'ro')
@@ -108,7 +112,18 @@ def rawPlots(mice, task_params, saving):
         # plt.cla()
 
         # create large violin for all animal
-
+   #     locs, labels = plt.xticks()
+        #     plt.xticks(np.arange(4), block_type)
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.plot(mice[i].bg_restart_s, 'b--')
+        plt.plot(mice[i].bg_restart_l, 'r--')
+        ax.set_title(f'{mice[i].name} percent trial restarted')
+        ax.set_xlabel("session")
+        ax.set_ylabel("%")
+        ax.legend(['short', 'long'])
+        if saving:
+            plt.savefig(f'{mice[i].name} percent trial restarted.svg')
+        plt.close()
 
 
 def violins(mice, task_params, saving):
@@ -180,7 +195,6 @@ def violins(mice, task_params, saving):
         labels.append(f'{mice[i].name} l')
 
     fig = plt.figure(facecolor=(1, 1, 1))
-    # Create an axes instance
     ax = fig.add_axes([0, 0, 1, 1])
     ax.set_xlabel('trial type (stable)')
     ax.set_ylabel('holding time (s)')
@@ -223,8 +237,6 @@ def violins(mice, task_params, saving):
         plt.savefig(f'violin_moving_var.svg', bbox_inches='tight')
     plt.close()
 
-
-
     for i in range(len(mice)):
         violin_var_split = []
         labels = []
@@ -259,3 +271,59 @@ def violins(mice, task_params, saving):
         if saving:
             plt.savefig(f'{mice[i].name}_violin_var_split.svg', bbox_inches='tight')
         plt.close()
+
+# plots about a particular session index (usually the last to see current stats)
+def plotSession(mice, session, task_params, saving):
+    path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
+    os.chdir(path)
+    print(f'plotting and saving in {path}')
+    violin_vars = []
+    labels = []
+    # session reward rate
+    for i in range(len(mice)):
+        curr_animal_path = path + '\\' + mice[i].name
+        os.chdir(curr_animal_path)
+        file_path = curr_animal_path + '\\' + os.listdir()[0]
+
+        session_to_plot = mice[i].session_list[session]
+
+        fig = plt.figure(facecolor=(1, 1, 1))
+        ax = fig.add_axes([0, 0, 1, 1])
+
+        plt.plot(session_to_plot.session_reward_rate, 'b--')
+        ax.set_title(f'{mice[i].name} {session} reward rate')
+        ax.set_xlabel('session time')
+        ax.set_ylabel('reward rate')
+        if saving:
+            plt.savefig(f'{mice[i].name} {session} reward rate.svg')
+        plt.close()
+
+        # groupings of short vs long blocks wait times
+        fig = plt.figure(facecolor=(1, 1, 1))
+        ax = fig.add_axes([0, 0, 1, 1])
+        ax.set_xlabel('blocks within session')
+        ax.set_ylabel('wait time')
+        all_licks = session_to_plot.session_holding_times
+        for j in range(1, len(all_licks)):
+            if session_to_plot.block_type[0] == 's':
+                if j % 2 == 0:
+                    labels.append("s")
+                else:
+                    labels.append("l")
+            else:
+                if j % 2 == 0:
+                    labels.append("l")
+                else:
+                    labels.append("s")
+        bp = ax.violinplot(all_licks, showmeans=True)
+        for i, pc in enumerate(bp["bodies"], 1):
+            if i % 2 != 0:
+                pc.set_facecolor('blue')
+            else:
+                pc.set_facecolor('red')
+
+        set_axis_style(ax, labels)
+        if saving:
+            plt.savefig(f'session_blk_lick_times.svg', bbox_inches='tight')
+        plt.close()
+

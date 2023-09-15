@@ -30,9 +30,10 @@ class BehaviorAnalysis:
                 mouse.stable_l.append(mouse.moving_average_l[k])
         print(len(mouse.stable_l))
 
-    def allAnimal(self):
-        for i in range(self.animal_num):
-            animal = self.animal_list[i]
+    def allAnimal(self, animals):
+        animal_num = len(animals)
+        for i in range(animal_num):
+            animal = animals[i]
             curr_animal = Animal(animal, self.task_params)
             self.mice.append(curr_animal)
             curr_path = self.path + "\\" + animal
@@ -59,7 +60,7 @@ class BehaviorAnalysis:
     # test the difference between statictics of different blocks
     def testBlockDiff(self):
         # make loop
-        for i in range(self.animal_num):
+        for i in range(len(self.mice)):
             t_stat, p_value = ttest_ind(self.mice[i].stable_s, self.mice[i].stable_l)
             self.stable_block_diff.append(p_value)
             t_stat, p_value = ttest_ind(self.mice[i].blk_holding_s, self.mice[i].blk_holding_l)

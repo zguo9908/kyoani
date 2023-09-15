@@ -12,7 +12,7 @@ def main():
 
 global task_type, task_params
 task_type = "regular"
-task_params = "curr_params"
+task_params = "old_params"
 
 if task_params == "curr_params":
     optimal_wait = [1.74, 3.45]
@@ -22,8 +22,10 @@ elif task_params == "old_params":
 if __name__ == '__main__':
     beh = BehaviorAnalysis(optimal_wait, task_type=task_type, task_params=task_params)
 
-    mice = beh.allAnimal()
+    mice = beh.allAnimal(["ZG020", "ZG021"])
 
     beh.testBlockDiff()
     plots.rawPlots(mice, task_params=task_params, saving=True)
     plots.violins(mice, task_params=task_params, saving=True)
+    plots.plotSession(mice, -1, task_params=task_params, saving=True)
+#"ZG007", "ZG011", "ZG015",
