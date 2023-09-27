@@ -6,11 +6,15 @@ from session import Session
 from scipy.stats import ttest_ind
 class BehaviorAnalysis:
 
-    def __init__(self, optimal_wait, task_type, task_params):
+    def __init__(self, optimal_wait, task_type, has_block, task_params):
         self.task_type = task_type
         self.task_params = task_params
+        self.has_block = has_block
         self.optimal_wait = optimal_wait
-        self.path = os.path.normpath(r'D:\behavior_data') + "\\" + task_params
+        if self.has_block:
+            self.path = os.path.normpath(r'D:\behavior_data') + "\\" + "blocks" + "\\" + task_params
+        else:
+            self.path = os.path.normpath(r'D:\behavior_data') + "\\" + "no_blocks" + "\\" + task_params
         print(self.path)
         os.chdir(self.path)
         self.animal_list = os.listdir()
@@ -22,7 +26,7 @@ class BehaviorAnalysis:
 
     def getStableTimes(self, mouse):
         for j in range(len(mouse.moving_average_s_var)):
-            if not math.isnan(mouse.moving_average_s_var[j]) and mouse.moving_average_s_var[j]< 1:
+            if not math.isnan(mouse.moving_average_s_var[j]) and mouse.moving_average_s_var[j] < 1:
                 mouse.stable_s.append(mouse.moving_average_s[j])
 
         for k in range(len(mouse.moving_average_l_var)):
@@ -43,7 +47,7 @@ class BehaviorAnalysis:
             sessions = [session for session in session_list if self.task_type in session]
             curr_animal.sessions = sessions
 
-            curr_animal.allSession(curr_path)
+            curr_animal.allSession(curr_path, self.has_block)
             print(f'processing all sessions for mice {animal}')
             curr_animal.getMovingAvg(window_size=8)
             curr_animal.getBlockWaiting()
@@ -63,7 +67,7 @@ class BehaviorAnalysis:
         for i in range(len(self.mice)):
             t_stat, p_value = ttest_ind(self.mice[i].stable_s, self.mice[i].stable_l)
             self.stable_block_diff.append(p_value)
-            t_stat, p_value = ttest_ind(self.mice[i].blk_holding_s, self.mice[i].blk_holding_l)
+            t_stat, p_value = ttest_ind(self.mice[i].holding_s_mean, self.mice[i].holding_l_mean)
             self.block_diff.append(p_value)
         print("p-vals for different blocks are")
         print(self.block_diff)

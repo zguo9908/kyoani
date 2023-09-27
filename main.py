@@ -9,9 +9,11 @@ import plots
 def main():
     pass
 
+# task_type = 'blocks', 'no_blocks'
 
 global task_type, task_params
 task_type = "regular"
+has_block = True
 task_params = "old_params"
 
 if task_params == "curr_params":
@@ -20,7 +22,7 @@ elif task_params == "old_params":
     optimal_wait = [1.52, 2.93]
 
 if __name__ == '__main__':
-    beh = BehaviorAnalysis(optimal_wait, task_type=task_type, task_params=task_params)
+    beh = BehaviorAnalysis(optimal_wait, task_type=task_type, has_block=has_block, task_params=task_params)
 
     mice = beh.allAnimal(["ZG020", "ZG021"])
 

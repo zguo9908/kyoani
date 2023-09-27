@@ -23,8 +23,8 @@ def rawPlots(mice, task_params, saving):
         file_path = curr_animal_path + '\\' + os.listdir()[0]
 
         fig, ax = plt.subplots(figsize=(10, 5))
-        plt.plot(mice[i].holding_s_blk, 'bo')
-        plt.plot(mice[i].holding_l_blk, 'ro')
+        plt.plot(mice[i].holding_s_mean, 'bo')
+        plt.plot(mice[i].holding_l_mean, 'ro')
         ax.set_title(f'{mice[i].name} holding times')
         ax.set_xlabel("session")
         ax.set_ylabel("holding time(s)")
@@ -90,8 +90,8 @@ def rawPlots(mice, task_params, saving):
         plt.close()
 
         fig, ax = plt.subplots(figsize=(10, 5))
-        plt.plot(mice[i].blk_miss_perc_s, 'b+')
-        plt.plot(mice[i].blk_miss_perc_l, 'r+')
+        plt.plot(mice[i].miss_perc_s, 'b+')
+        plt.plot(mice[i].miss_perc_l, 'r+')
         ax.set_title(f'{mice[i].name} missed trials percentage')
         ax.set_xlabel("block")
         ax.set_ylabel("%")
@@ -160,8 +160,8 @@ def violins(mice, task_params, saving):
     violin_times = []
     labels = []
     for i in range(len(mice)):
-        violin_times.append(mice[i].blk_holding_s)
-        violin_times.append(mice[i].blk_holding_l)
+        violin_times.append(mice[i].holding_s_mean)
+        violin_times.append(mice[i].holding_l_mean)
         labels.append(f'{mice[i].name} s')
         labels.append(f'{mice[i].name} l')
 
@@ -288,14 +288,14 @@ def plotSession(mice, session, task_params, saving):
         session_to_plot = mice[i].session_list[session]
 
         fig = plt.figure(facecolor=(1, 1, 1))
-        ax = fig.add_axes([0, 0, 1, 1])
+        # ax = fig.add_axes([0, 0, 1, 1])
 
         plt.plot(session_to_plot.session_reward_rate, 'b--')
-        ax.set_title(f'{mice[i].name} {session} reward rate')
-        ax.set_xlabel('session time')
-        ax.set_ylabel('reward rate')
+        plt.title = f'{mice[i].name} the {session} session reward rate'
+        plt.xlabel('session time')
+        plt.ylabel('reward rate (ul/s)')
         if saving:
-            plt.savefig(f'{mice[i].name} {session} reward rate.svg')
+            plt.savefig(f'{mice[i].name} {session} session reward rate.svg')
         plt.close()
 
         # groupings of short vs long blocks wait times
@@ -304,6 +304,7 @@ def plotSession(mice, session, task_params, saving):
         ax.set_xlabel('blocks within session')
         ax.set_ylabel('wait time')
         all_licks = session_to_plot.session_holding_times
+        print(len(all_licks))
         for j in range(1, len(all_licks)):
             if session_to_plot.block_type[0] == 's':
                 if j % 2 == 0:
@@ -315,6 +316,7 @@ def plotSession(mice, session, task_params, saving):
                     labels.append("l")
                 else:
                     labels.append("s")
+        print(session_to_plot.file_path)
         bp = ax.violinplot(all_licks, showmeans=True)
         for i, pc in enumerate(bp["bodies"], 1):
             if i % 2 != 0:

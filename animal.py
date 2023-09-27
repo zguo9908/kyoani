@@ -13,9 +13,9 @@ class Animal:
         self.name = name
         self.task_params = task_params
         self.sessions = []
-
-        self.holding_s_blk = []
-        self.holding_l_blk = []
+        # mean of holding during blocks or sessions of a timescape type
+        self.holding_s_mean = []
+        self.holding_l_mean = []
         self.opt_diff_s = []
         self.opt_diff_l = []
 
@@ -23,8 +23,9 @@ class Animal:
         self.perc_rewarded_s = []  # across days
         self.perc_rewarded_l = []
 
-        self.blk_holding_s = []
-        self.blk_holding_l = []
+        # all holding times.
+        self.holding_s = []
+        self.holding_l = []
 
         self.all_holding_s = []
         self.all_holding_l = []
@@ -35,8 +36,8 @@ class Animal:
         self.holding_perf_s = []
         self.holding_perf_l = []
 
-        self.blk_miss_perc_s = []
-        self.blk_miss_perc_l = []
+        self.miss_perc_s = []
+        self.miss_perc_l = []
 
         self.sl_blk_start_var = []
         self.ls_blk_start_var = []
@@ -58,17 +59,17 @@ class Animal:
 
         self.bg_restart_s = []
         self.bg_restart_l = []
-        self.bg_restart_s_blk = []
-        self.bg_restart_l_blk = []
+        self.bg_restart_s_all = []
+        self.bg_restart_l_all = []
         self.session_list = []
-    def allSession(self, path):
+    def allSession(self, path, has_block):
         self.session_num = len(self.sessions)
-        # print(self.session_num)
+        print(self.session_num)
         for j in range(self.session_num):
             curr_session_path = path + '\\' + self.sessions[j]
             os.chdir(curr_session_path)
             file_path = curr_session_path + '\\' + os.listdir()[0]
-            curr_session = Session(self, file_path, self.task_params)
+            curr_session = Session(self, file_path, has_block, self.task_params)
             curr_session.parseSessionStats()
             curr_session.updateSessionStats()
             self.session_list.append(curr_session)
@@ -95,9 +96,9 @@ class Animal:
 
     # this function will compute block waiting time average as training goes
     def getBlockWaiting(self):
-        curr_all_s = self.blk_holding_s
+        curr_all_s = self.holding_s_mean
         # self.holding_s_by_block = []
-        curr_all_l = self.blk_holding_l
+        curr_all_l = self.holding_l_mean
         # self.holding_l_by_block = []
         for j in range(len(curr_all_s)):
             sublist = curr_all_s[:j + 1]
