@@ -7,13 +7,16 @@ from statistics import mean
 import numpy
 import numpy as np
 import pandas as pd
-
+def is_float(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
 def getRewardedPerc(df, trial_num):
     rewarded_trial = df.loc[(df['key'] == 'reward') & (df['value'] == 1)]
     perc_rewarded_perf = len(rewarded_trial) / trial_num
     return perc_rewarded_perf
-
-
 
 def getMissedTrials(df, trial_num):
     miss_trials = df.loc[(df['state'] == 'in_wait') &
@@ -24,7 +27,12 @@ def getMissedTrials(df, trial_num):
     return missed_perc, miss_trials
 
 def getProbRewarded(df):
-    prob_rewarded_licks = df['curr_reward_prob']
+    #prob_rewarded_licks = df[df['curr_reward_prob'].notna()]
+
+    df['curr_reward_prob'] = pd.to_numeric(df['curr_reward_prob'], errors='coerce')
+
+    # Create a boolean column indicating which values could be converted to float
+    prob_rewarded_licks = ~df['curr_reward_prob'].isna()
     prob_rewarded_licks = prob_rewarded_licks.astype('float')
     mean_prob_at_lick = prob_rewarded_licks.mean()
     return mean_prob_at_lick
@@ -100,15 +108,43 @@ class Session:
 
         self.animal.holding_diff = []
 
+        self.animal_all_holding_s_good = []
+        self.holding_s_good = []
+        self.opt_diff_s_good = []
+        self.perc_rewarded_s_good = []
+        self.prob_at_lick_s_good = []
+
+        self.animal_all_holding_l_good = []
+        self.holding_l_good = []
+        self.opt_diff_l_good = []
+        self.perc_rewarded_l_good = []
+        self.prob_at_lick_l_good = []
 
 
+    def processSelectedTrials(self, trial_num, df, curr_opt_wait, timescape_type):
+        # this function will process selected trials dataframe
+        # within block or within a no-block session
+        # can be all trials or just the good trials.
+
+        # outputs the miss trials percentage, miss trials,
+        # mean prob at lick,
+        blk_missed_perc, miss_trials = getMissedTrials(df, trial_num)
+        print(self.file_path)
+        mean_prob_at_lick = getProbRewarded(df)
+        perc_rewarded_perf = getRewardedPerc(df, trial_num)
+        curr_licks_during_wait = df.loc[
+            (df['key'] == 'lick') & (df['state'] == 'in_wait')]
+        licks = curr_licks_during_wait.curr_wait_time
+        lick_mean, mean_lick_diff = self.getLickStats(licks, curr_opt_wait)
+
+        return blk_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
+               mean_lick_diff, perc_rewarded_perf
 
     def parseSessionStats(self):
         session_data = pd.read_csv(self.file_path, skiprows=3)
         session_data["session_time"] = session_data["session_time"] - session_data["session_time"][0]
 
         # find block switches
-
         session_data['blk_change'] = session_data.loc[:, 'block_num'].diff()
         session_data['total_volume_received'] = session_data['total_reward']*5
 
@@ -127,94 +163,116 @@ class Session:
                 # find number of trials in this block
                 blk_trial_num = max(curr_blk.session_trial_num) - min(curr_blk.session_trial_num) + 1
 
-                perc_rewarded_perf = getRewardedPerc(curr_blk, blk_trial_num)
-                self.perc_rewarded.append(perc_rewarded_perf)
-
-                curr_licks_during_wait = curr_blk.loc[(curr_blk['key'] == 'lick') & (curr_blk['state'] == 'in_wait')]
+                # perc_rewarded_perf = getRewardedPerc(curr_blk, blk_trial_num)
                 curr_blk_mean_reward_time = int(curr_blk.mean_reward_time.iloc[0])
-
+                curr_opt_wait, timescape_type = self.getTimescapeType(curr_blk_mean_reward_time)
                 blk_cp = curr_blk.copy()
                 blk_cp['next_state'] = blk_cp['state'].shift(-1)
 
-                blk_missed_perc, miss_trials = getMissedTrials(blk_cp, blk_trial_num)
                 blk_bg_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats = \
                     getBackgroundLicks(blk_cp, blk_trial_num)
                 print(blk_trial_num == good_trials_num + len(trials_lick_at_bg))
 
-                mean_prob_at_lick = getProbRewarded(blk_cp)
-                curr_opt_wait, timescape_type = self.getTimescapeType(curr_blk_mean_reward_time)
+                blk_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
+                mean_lick_diff, perc_rewarded_perf = self.processSelectedTrials(blk_trial_num, blk_cp,
+                                                                                curr_opt_wait, timescape_type)
+
+                blk_missed_perc_good, miss_trials_good, mean_prob_at_lick_good, licks_good, lick_mean_good, \
+                mean_lick_diff_good, perc_rewarded_perf_good = self.processSelectedTrials(good_trials_num,
+                                                                         trials_good, curr_opt_wait, timescape_type)
+
                 self.block_type.append(timescape_type)
+                self.perc_rewarded.append(perc_rewarded_perf)
 
-                if 'curr_wait_time' in curr_licks_during_wait:
-                    licks = curr_licks_during_wait.curr_wait_time
-                    self.session_holding_times.append(licks)
-                    if len(licks) >= 10 and blk_trial_num >= 10:
-                        self.valid_block_type.append(self.block_type[k-1])
-                        self.blkVarianceAnalysis(licks)
+                self.session_holding_times.append(licks)
+                if len(licks) >= 10 and blk_trial_num >= 10:
+                    self.valid_block_type.append(self.block_type[k-1])
+                    self.blkVarianceAnalysis(licks)
 
-                    # block mean analysis
-                    lick_mean, mean_lick_diff = self.getLickStats(licks, curr_opt_wait)
-                    self.opt_diff.append(mean_lick_diff)
+                self.opt_diff.append(mean_lick_diff)
 
-                    if self.block_type[k - 1] == 's':
-                        self.animal.all_holding_s.extend(licks)
-                        self.holding_s.append(lick_mean)
-                        self.opt_diff_s.append(mean_lick_diff)
-                        self.perc_rewarded_s.append(perc_rewarded_perf)
-                        self.prob_at_lick_s.append(mean_prob_at_lick)
-                        self.bg_repeats_s.append(blk_bg_repeat_perc)
-                        print(f"bg repeat prec  {self.bg_repeats_s}")
+                if self.block_type[k - 1] == 's':
+                    self.animal.all_holding_s.extend(licks)
+                    self.holding_s.append(lick_mean)
+                    self.opt_diff_s.append(mean_lick_diff)
+                    self.perc_rewarded_s.append(perc_rewarded_perf)
+                    self.prob_at_lick_s.append(mean_prob_at_lick)
+                    self.bg_repeats_s.append(blk_bg_repeat_perc)
+                    print(f"bg repeat perc {self.bg_repeats_s}")
 
-                        if not math.isnan(blk_missed_perc):
-                            self.animal.miss_perc_s.append(blk_missed_perc)
-                        else:
-                            self.animal.miss_perc_s.append(np.nan)
+                    self.animal_all_holding_s_good.extend(licks_good)
+                    self.holding_s_good.append(lick_mean_good)
+                    self.opt_diff_s_good.append(mean_lick_diff_good)
+                    self.perc_rewarded_s_good.append(perc_rewarded_perf_good)
+                    self.prob_at_lick_s_good.append(mean_prob_at_lick_good)
+                    print(f"s good holding number {len(self.holding_s_good)}")
+                    if not math.isnan(blk_missed_perc):
+                        self.animal.miss_perc_s.append(blk_missed_perc)
                     else:
-                        self.animal.all_holding_l.extend(licks)
-                        self.holding_l.append(lick_mean)
-                        self.opt_diff_l.append(mean_lick_diff)
-                        self.perc_rewarded_l.append(perc_rewarded_perf)
-                        self.prob_at_lick_l.append(mean_prob_at_lick)
-                        self.bg_repeats_l.append(blk_bg_repeat_perc)
-
-                        if not math.isnan(blk_missed_perc):
-                            self.animal.miss_perc_l.append(blk_missed_perc)
-                        else:
-                            self.animal.miss_perc_l.append(np.nan)
-
+                        self.animal.miss_perc_s.append(np.nan)
                 else:
-                    break
+                    self.animal.all_holding_l.extend(licks)
+                    self.holding_l.append(lick_mean)
+                    self.opt_diff_l.append(mean_lick_diff)
+                    self.perc_rewarded_l.append(perc_rewarded_perf)
+                    self.prob_at_lick_l.append(mean_prob_at_lick)
+                    self.bg_repeats_l.append(blk_bg_repeat_perc)
+
+                    self.animal_all_holding_l_good.extend(licks_good)
+                    self.holding_l_good.append(lick_mean_good)
+                    self.opt_diff_l_good.append(mean_lick_diff_good)
+                    self.perc_rewarded_l_good.append(perc_rewarded_perf_good)
+                    self.prob_at_lick_l_good.append(mean_prob_at_lick_good)
+                    if not math.isnan(blk_missed_perc):
+                        self.animal.miss_perc_l.append(blk_missed_perc)
+                    else:
+                        self.animal.miss_perc_l.append(np.nan)
+
+                # else:
+                #     break
         else:
             session_data_cp = session_data.copy()
             session_data_cp['next_state'] = session_data_cp['state'].shift(-1)
 
             session_trial_num = max(session_data_cp.session_trial_num) - min(session_data_cp.session_trial_num) + 1
-            session_missed_perc, miss_trials = getMissedTrials(session_data_cp, session_trial_num)
+            # session_missed_perc, miss_trials = getMissedTrials(session_data_cp, session_trial_num)
+
             session_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats = \
                 getBackgroundLicks(session_data_cp, session_trial_num)
-            curr_licks_during_wait = session_data.loc[(session_data['key'] == 'lick') & (session_data['state'] == 'in_wait')]
-            licks = curr_licks_during_wait.curr_wait_time
+            # curr_licks_during_wait = session_data.loc[(session_data['key'] == 'lick') & (session_data['state'] == 'in_wait')]
+            # licks = curr_licks_during_wait.curr_wait_time
             session_mean_reward_time = int(session_data.mean_reward_time.iloc[0])
             curr_opt_wait, timescape_type = self.getTimescapeType(session_mean_reward_time)
-            all_holding_diff = licks - curr_opt_wait
-            self.session_holding_times.append(licks)
-            lick_mean, mean_lick_diff = self.getLickStats(self, licks, curr_opt_wait)
-
-            session_missed_perc, miss_trials = getMissedTrials(session_data_cp, session_trial_num)
-            session_bg_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats = getBackgroundLicks(
-                session_data_cp)
+            # all_holding_diff = licks - curr_opt_wait
+            # self.session_holding_times.append(licks)
+            # lick_mean, mean_lick_diff = self.getLickStats(self, licks, curr_opt_wait)
             # testing the trials add up to the total number
             # print(session_trial_num == good_trials_num + len(trials_lick_at_bg))
+            # mean_prob_at_lick = getProbRewarded(session_data_cp)
+            # perc_rewarded_perf = getRewardedPerc(session_data_cp, session_trial_num)
 
-            mean_prob_at_lick = getProbRewarded(session_data_cp)
-            perc_rewarded_perf = getRewardedPerc(session_data_cp, session_trial_num)
+            session_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
+            mean_lick_diff, perc_rewarded_perf = self.processSelectedTrials( session_trial_num, session_data_cp,
+                                                                            curr_opt_wait, timescape_type)
+
+            session_missed_perc_good, miss_trials_good, mean_prob_at_lick_good, licks_good, lick_mean_good, \
+            mean_lick_diff_good, perc_rewarded_perf_good = self.processSelectedTrials( good_trials_num, trials_good,
+                                                                            curr_opt_wait, timescape_type)
+            print(len(licks_good))
             if timescape_type == 's':
                 self.animal.all_holding_s.extend(licks)
                 self.holding_s.append(lick_mean)
                 self.opt_diff_s.append(mean_lick_diff)
                 self.perc_rewarded_s.append(perc_rewarded_perf)
                 self.prob_at_lick_s.append(mean_prob_at_lick)
-                self.bg_repeats_s.append(session_bg_repeat_perc)
+                self.bg_repeats_s.append(session_repeat_perc)
+
+                self.animal_all_holding_s_good.extend(licks_good)
+                self.holding_s_good.append(lick_mean_good)
+                self.opt_diff_s_good.append(mean_lick_diff_good)
+                self.perc_rewarded_s_good.append(perc_rewarded_perf_good)
+                self.prob_at_lick_s_good.append(mean_prob_at_lick_good)
+                print(f"s good holding number {len(self.holding_s_good)}")
                 if not math.isnan(session_missed_perc):
                     self.animal.miss_perc_s.append(session_missed_perc)
                 else:
@@ -225,7 +283,12 @@ class Session:
                 self.opt_diff_l.append(mean_lick_diff)
                 self.perc_rewarded_l.append(perc_rewarded_perf)
                 self.prob_at_lick_l.append(mean_prob_at_lick)
-                self.bg_repeats_l.append(session_bg_repeat_perc)
+                self.bg_repeats_l.append(session_repeat_perc)
+                self.animal_all_holding_l_good.extend(licks_good)
+                self.holding_l_good.append(lick_mean_good)
+                self.opt_diff_l_good.append(mean_lick_diff_good)
+                self.perc_rewarded_l_good.append(perc_rewarded_perf_good)
+                self.prob_at_lick_l_good.append(mean_prob_at_lick_good)
 
                 if not math.isnan(session_missed_perc):
                     self.animal.miss_perc_l.append(session_missed_perc)
@@ -262,11 +325,19 @@ class Session:
         if len(self.holding_s) > 0:
             self.animal.holding_s.extend(x for x in self.holding_s if not math.isnan(x))
             self.animal.holding_s_mean.append(mean(self.holding_s))
+            if len(self.holding_s_good) > 0:
+                self.animal.all_holding_s_good.extend(x for x in self.holding_s_good if not math.isnan(x))
+                self.animal.holding_s_mean_good.append(mean(self.holding_s_good))
+                print(f"mean good trial licking {self.animal.holding_s_mean_good}")
+
         else:
             self.animal.holding_s_mean.append(np.nan)
         if len(self.holding_l) > 0:
             self.animal.holding_l.extend(x for x in self.holding_l if not math.isnan(x))
             self.animal.holding_l_mean.append(mean(self.holding_l))
+            if len(self.holding_l_good) > 0:
+                self.animal.all_holding_l_good.extend(x for x in self.holding_l_good if not math.isnan(x))
+                self.animal.holding_l_mean_good.append(mean(self.holding_l_good))
         else:
             self.animal.holding_l_mean.append(np.nan)
 
@@ -275,35 +346,54 @@ class Session:
 
         self.animal.bg_restart_s_all.extend(self.bg_repeats_s)
         self.animal.bg_restart_l_all.extend(self.bg_repeats_l)
+        print(len(self.animal.bg_restart_s))
 
-        self.animal.bg_restart_s.append(mean(self.bg_repeats_s))
-        self.animal.bg_restart_l.append(mean(self.bg_repeats_l))
+        if len(self.bg_repeats_s) > 0:
+            self.animal.bg_restart_s.append(mean(self.bg_repeats_s))
+        else:
+            self.animal.bg_restart_s.append(np.nan)
+        if len(self.bg_repeats_l) > 0:
+            self.animal.bg_restart_l.append(mean(self.bg_repeats_l))
+        else:
+            self.animal.bg_restart_l.append(np.nan)
 
         if len(self.opt_diff_s) > 0:
             self.animal.opt_diff_s.append(mean(self.opt_diff_s))
+            if len(self.opt_diff_s_good) >0:
+                self.animal.opt_diff_s_good.append(mean(self.opt_diff_s_good))
         else:
             self.animal.opt_diff_s.append(np.nan)
         if len(self.opt_diff_l) > 0:
             self.animal.opt_diff_l.append(mean(self.opt_diff_l))
+            if len(self.opt_diff_l_good) >0:
+                self.animal.opt_diff_l_good.append(mean(self.opt_diff_l_good))
         else:
             self.animal.opt_diff_l.append(np.nan)
 
         if len(self.perc_rewarded_s) > 0:
             self.animal.perc_rewarded_s.append(mean(self.perc_rewarded_s))
+            if len(self.perc_rewarded_s_good) > 0 :
+                self.animal.perc_rewarded_s_good.append(mean(self.perc_rewarded_s_good))
         else:
             self.animal.perc_rewarded_s.append(np.nan)
         if len(self.perc_rewarded_l) > 0:
             self.animal.perc_rewarded_l.append(mean(self.perc_rewarded_l))
+            if len(self.perc_rewarded_l_good) > 0:
+                self.animal.perc_rewarded_l_good.append(mean(self.perc_rewarded_l_good))
         else:
             self.animal.perc_rewarded_l.append(np.nan)
 
         if len(self.prob_at_lick_s) > 0:
             self.animal.lick_prob_s.append(mean(self.prob_at_lick_s))
+            if len(self.prob_at_lick_s_good) > 0:
+                self.animal.prob_at_lick_s_good.append(mean(self.prob_at_lick_s_good))
         else:
             self.animal.lick_prob_s.append(np.nan)
 
         if len(self.prob_at_lick_l) > 0:
             self.animal.lick_prob_l.append(mean(self.prob_at_lick_l))
+            if len(self.prob_at_lick_l_good) > 0:
+                self.animal.prob_at_lick_l_good.append(mean(self.prob_at_lick_l_good))
         else:
             self.animal.lick_prob_l.append(np.nan)
 

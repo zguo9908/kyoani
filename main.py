@@ -13,7 +13,7 @@ def main():
 
 global task_type, task_params
 task_type = "regular"
-has_block = True
+has_block = False
 task_params = "old_params"
 
 if task_params == "curr_params":
@@ -24,10 +24,10 @@ elif task_params == "old_params":
 if __name__ == '__main__':
     beh = BehaviorAnalysis(optimal_wait, task_type=task_type, has_block=has_block, task_params=task_params)
 
-    mice = beh.allAnimal(["ZG020", "ZG021"])
+    mice = beh.allAnimal(["ZG022", "ZG021", "ZG023", "ZG024", "ZG025", "ZG026", "ZG027", "ZG028", "ZG029", "ZG020"  ])
 
     beh.testBlockDiff()
-    plots.rawPlots(mice, task_params=task_params, saving=True)
-    plots.violins(mice, task_params=task_params, saving=True)
-    plots.plotSession(mice, -1, task_params=task_params, saving=True)
+    plots.rawPlots(mice, task_params=task_params, has_block=has_block, saving=True)
+    plots.violins(mice, task_params=task_params,  has_block=has_block, saving=True)
+    plots.plotSession(mice, -1, task_params=task_params, has_block=has_block, saving=True)
 #"ZG007", "ZG011", "ZG015",

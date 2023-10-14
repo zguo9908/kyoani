@@ -13,14 +13,20 @@ def set_axis_style(ax, labels):
     ax.set_xlim(0.25, len(labels) + 0.75)
 
 
-def rawPlots(mice, task_params, saving):
-    path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
+def rawPlots(mice, task_params, has_block, saving):
+    #path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
+    if has_block:
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
+    else:
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
     os.chdir(path)
     print(f'plotting and saving in {path}')
     for i in range(len(mice)):
         curr_animal_path = path + '\\' + mice[i].name
+        print(curr_animal_path)
         os.chdir(curr_animal_path)
-        file_path = curr_animal_path + '\\' + os.listdir()[0]
+        # print(os.listdir())
+        # file_path = curr_animal_path + '\\' + os.listdir()[0]
 
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].holding_s_mean, 'bo')
@@ -40,6 +46,26 @@ def rawPlots(mice, task_params, saving):
         ax.set_xlabel("session")
         ax.set_ylabel("avg licking - optimal(s)")
         plt.savefig(f'{mice[i].name} avg licking - optimal.svg')
+        plt.close()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.plot(mice[i].holding_s_mean_good, 'bo')
+        plt.plot(mice[i].holding_l_mean_good, 'ro')
+        ax.set_title(f'{mice[i].name} good trials holding times')
+        ax.set_xlabel("session")
+        ax.set_ylabel("holding time(s)")
+        ax.legend(['short', 'long'])
+        plt.savefig(f'{mice[i].name}_holding_times_good.svg')
+        plt.close()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.set_title(f'{mice[i].name} good trials holding - optimal time')
+        plt.plot(mice[i].opt_diff_s_good, 'b+')
+        plt.plot(mice[i].opt_diff_l_good, 'r+')
+        ax.legend(['short', 'long'])
+        ax.set_xlabel("session")
+        ax.set_ylabel("avg licking - optimal(s)")
+        plt.savefig(f'{mice[i].name} good trials avg licking - optimal.svg')
         plt.close()
 
         #     locs, labels = plt.xticks()
@@ -126,8 +152,11 @@ def rawPlots(mice, task_params, saving):
         plt.close()
 
 
-def violins(mice, task_params, saving):
-    path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
+def violins(mice, task_params, has_block, saving):
+    if has_block:
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
+    else:
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
     os.chdir(path)
     print(f'plotting and saving in {path}')
     violin_vars = []
@@ -273,8 +302,11 @@ def violins(mice, task_params, saving):
         plt.close()
 
 # plots about a particular session index (usually the last to see current stats)
-def plotSession(mice, session, task_params, saving):
-    path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
+def plotSession(mice, session, task_params, has_block, saving):
+    if has_block:
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
+    else:
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
     os.chdir(path)
     print(f'plotting and saving in {path}')
     violin_vars = []

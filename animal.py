@@ -62,6 +62,21 @@ class Animal:
         self.bg_restart_s_all = []
         self.bg_restart_l_all = []
         self.session_list = []
+
+        self.all_holding_s_good = []
+        self.holding_s_mean_good = []
+
+        self.all_holding_l_good = []
+        self.holding_l_mean_good = []
+
+        self.opt_diff_s_good = []
+        self.opt_diff_l_good = []
+
+        self.perc_rewarded_s_good = []
+        self.perc_rewarded_l_good = []
+
+        self.prob_at_lick_s_good = []
+        self.prob_at_lick_l_good = []
     def allSession(self, path, has_block):
         self.session_num = len(self.sessions)
         print(self.session_num)
