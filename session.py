@@ -7,16 +7,65 @@ from statistics import mean
 import numpy
 import numpy as np
 import pandas as pd
+
+
 def is_float(value):
     try:
         float(value)
         return True
     except ValueError:
         return False
+
+
 def getRewardedPerc(df, trial_num):
     rewarded_trial = df.loc[(df['key'] == 'reward') & (df['value'] == 1)]
     perc_rewarded_perf = len(rewarded_trial) / trial_num
     return perc_rewarded_perf
+
+
+def getConsumptionStats(df):
+    # get length of consumption,
+    s = pd.Series(df['state'])
+    # Initialize variables to track consecutive "1"s
+    start = None
+    consumption_indices = []
+
+    for i, value in enumerate(s):
+        if value == "in_consumption":
+            if start is None:
+                start = i
+        elif start is not None:
+            # If we've encountered a non-"1" after a sequence of "1"s
+            end = i - 1
+            consumption_indices.append((start, end))
+            start = None
+
+    # Check if a sequence of "1"s ends at the last index
+    if start is not None:
+        consumption_indices.append((start, i))
+
+   # print(consumption_indices)
+    consumption_length = []
+    consumption_licks = []
+    # Iterate through the consecutive_ones list and slice the DataFrame
+    for start, end in consumption_indices:
+        curr_consumption = df.iloc[start:end + 1]
+        curr_consumption = curr_consumption.reset_index(drop=True)
+      #  print(curr_consumption['curr_trial_time'])
+        curr_consumption_length = curr_consumption.iloc[-1]['curr_trial_time'] - curr_consumption.iloc[0]['curr_trial_time']
+        consumption_length.append(curr_consumption_length)
+
+        curr_consumption_licks = len(curr_consumption.loc[(curr_consumption['key'] == 'lick') &
+                                                          (curr_consumption['value'] == 1)])
+        consumption_licks.append(curr_consumption_licks)
+    if(len(consumption_length))>0:
+        mean_consumption_length = mean(consumption_length)
+        mean_consumption_licks = mean(consumption_licks)
+    else:
+        mean_consumption_length = np.nan
+        mean_consumption_licks = np.nan
+
+    return consumption_indices, consumption_length, consumption_licks, mean_consumption_length, mean_consumption_licks
 
 def getMissedTrials(df, trial_num):
     miss_trials = df.loc[(df['state'] == 'in_wait') &
@@ -47,7 +96,7 @@ def getBackgroundLicks(df, trial_num):
     counts_column = repeat_counts.values
     # Calculate the average
     average_repeats = counts_column.mean()
-    print("Average number of repeats: ", average_repeats)
+    #print("Average number of repeats: ", average_repeats)
     perc_repeat = len(trials_lick_at_bg)/trial_num
     exclude_values = trials_lick_at_bg['session_trial_num']
     # print(len(exclude_values))
@@ -114,11 +163,15 @@ class Session:
         self.perc_rewarded_s_good = []
         self.prob_at_lick_s_good = []
 
+        self.non_reflexive_s = []
+        self.non_reflexive_l = []
+
         self.animal_all_holding_l_good = []
         self.holding_l_good = []
         self.opt_diff_l_good = []
         self.perc_rewarded_l_good = []
         self.prob_at_lick_l_good = []
+        self.reflex_length = 0.5
 
 
     def processSelectedTrials(self, trial_num, df, curr_opt_wait, timescape_type):
@@ -136,9 +189,10 @@ class Session:
             (df['key'] == 'lick') & (df['state'] == 'in_wait')]
         licks = curr_licks_during_wait.curr_wait_time
         lick_mean, mean_lick_diff = self.getLickStats(licks, curr_opt_wait)
+        consumption_indices, consumption_length, consumption_licks, mean_consumption_length, mean_consumption_licks = getConsumptionStats(df)
 
         return blk_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
-               mean_lick_diff, perc_rewarded_perf
+               mean_lick_diff, perc_rewarded_perf,  mean_consumption_length, mean_consumption_licks
 
     def parseSessionStats(self):
         session_data = pd.read_csv(self.file_path, skiprows=3)
@@ -146,12 +200,14 @@ class Session:
 
         # find block switches
         session_data['blk_change'] = session_data.loc[:, 'block_num'].diff()
-        session_data['total_volume_received'] = session_data['total_reward']*5
-
+        if self.has_block:
+            session_data['total_volume_received'] = session_data['total_reward']*5
+        else:
+            session_data['total_volume_received'] = session_data['total_reward']*10
         self.session_reward_rate = session_data['total_volume_received']/(session_data['session_time'])
-        print(session_data['total_volume_received'].iloc[-1])
-        print(session_data['session_time'].iloc[-1])
-        print(f'mean of session reward rate is {self.session_reward_rate.mean()}')
+        # print(session_data['total_volume_received'].iloc[-1])
+        # print(session_data['session_time'].iloc[-1])
+        # print(f'mean of session reward rate is {self.session_reward_rate.mean()}')
 
         if self.has_block:
             print("processing session with blocks")
@@ -174,17 +230,19 @@ class Session:
                 print(blk_trial_num == good_trials_num + len(trials_lick_at_bg))
 
                 blk_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
-                mean_lick_diff, perc_rewarded_perf = self.processSelectedTrials(blk_trial_num, blk_cp,
+                mean_lick_diff, perc_rewarded_perf, mean_consumption_length, mean_consumption_licks = self.processSelectedTrials(blk_trial_num, blk_cp,
                                                                                 curr_opt_wait, timescape_type)
 
                 blk_missed_perc_good, miss_trials_good, mean_prob_at_lick_good, licks_good, lick_mean_good, \
-                mean_lick_diff_good, perc_rewarded_perf_good = self.processSelectedTrials(good_trials_num,
+                mean_lick_diff_good, perc_rewarded_perf_good, mean_consumption_length_good, mean_consumption_licks_good = self.processSelectedTrials(good_trials_num,
                                                                          trials_good, curr_opt_wait, timescape_type)
 
                 self.block_type.append(timescape_type)
                 self.perc_rewarded.append(perc_rewarded_perf)
 
                 self.session_holding_times.append(licks)
+                self.animal.mean_consumption_length.append(mean_consumption_length)
+                self.animal.mean_consumption_licks.append(mean_consumption_licks)
                 if len(licks) >= 10 and blk_trial_num >= 10:
                     self.valid_block_type.append(self.block_type[k-1])
                     self.blkVarianceAnalysis(licks)
@@ -193,7 +251,8 @@ class Session:
 
                 if self.block_type[k - 1] == 's':
                     self.animal.all_holding_s.extend(licks)
-                    self.holding_s.append(lick_mean)
+                    self.animal.all_holding_s_index.append(len(self.animal.all_holding_s))
+                    self.holding_s.append(lick_mean) # block mean
                     self.opt_diff_s.append(mean_lick_diff)
                     self.perc_rewarded_s.append(perc_rewarded_perf)
                     self.prob_at_lick_s.append(mean_prob_at_lick)
@@ -212,6 +271,7 @@ class Session:
                         self.animal.miss_perc_s.append(np.nan)
                 else:
                     self.animal.all_holding_l.extend(licks)
+                    self.animal.all_holding_l_index.append(len(self.animal.all_holding_l))
                     self.holding_l.append(lick_mean)
                     self.opt_diff_l.append(mean_lick_diff)
                     self.perc_rewarded_l.append(perc_rewarded_perf)
@@ -228,8 +288,6 @@ class Session:
                     else:
                         self.animal.miss_perc_l.append(np.nan)
 
-                # else:
-                #     break
         else:
             session_data_cp = session_data.copy()
             session_data_cp['next_state'] = session_data_cp['state'].shift(-1)
@@ -239,28 +297,29 @@ class Session:
 
             session_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats = \
                 getBackgroundLicks(session_data_cp, session_trial_num)
-            # curr_licks_during_wait = session_data.loc[(session_data['key'] == 'lick') & (session_data['state'] == 'in_wait')]
-            # licks = curr_licks_during_wait.curr_wait_time
+
             session_mean_reward_time = int(session_data.mean_reward_time.iloc[0])
             curr_opt_wait, timescape_type = self.getTimescapeType(session_mean_reward_time)
-            # all_holding_diff = licks - curr_opt_wait
-            # self.session_holding_times.append(licks)
-            # lick_mean, mean_lick_diff = self.getLickStats(self, licks, curr_opt_wait)
-            # testing the trials add up to the total number
-            # print(session_trial_num == good_trials_num + len(trials_lick_at_bg))
-            # mean_prob_at_lick = getProbRewarded(session_data_cp)
-            # perc_rewarded_perf = getRewardedPerc(session_data_cp, session_trial_num)
 
             session_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
-            mean_lick_diff, perc_rewarded_perf = self.processSelectedTrials( session_trial_num, session_data_cp,
+            mean_lick_diff, perc_rewarded_perf, mean_consumption_length, mean_consumption_licks = self.processSelectedTrials( session_trial_num, session_data_cp,
                                                                             curr_opt_wait, timescape_type)
 
             session_missed_perc_good, miss_trials_good, mean_prob_at_lick_good, licks_good, lick_mean_good, \
-            mean_lick_diff_good, perc_rewarded_perf_good = self.processSelectedTrials( good_trials_num, trials_good,
-                                                                            curr_opt_wait, timescape_type)
-            print(len(licks_good))
+            mean_lick_diff_good, perc_rewarded_perf_good, mean_consumption_length_good, mean_consumption_licks_good = \
+                                                        self.processSelectedTrials( good_trials_num, trials_good, curr_opt_wait, timescape_type)
+            self.animal.mean_consumption_length.append(mean_consumption_length)
+            self.animal.mean_consumption_licks.append(mean_consumption_licks)
+
+           # print(len(licks_good))
             if timescape_type == 's':
                 self.animal.all_holding_s.extend(licks)
+                self.animal.all_holding_s_list.append(licks)
+                self.animal.all_holding_s_index.append(len(self.animal.all_holding_s))
+                self.animal.reflex_lick_perc_s.append(len(licks(licks <= self.reflex_length))/len(licks))
+                self.non_reflexive_s.append(licks(licks > self.reflex_length))
+               # print(f'std of current licking is {np.std(licks)}')
+                self.animal.holding_s_std.append(np.std(licks))
                 self.holding_s.append(lick_mean)
                 self.opt_diff_s.append(mean_lick_diff)
                 self.perc_rewarded_s.append(perc_rewarded_perf)
@@ -279,6 +338,12 @@ class Session:
                     self.animal.miss_perc_s.append(np.nan)
             else:
                 self.animal.all_holding_l.extend(licks)
+                self.animal.all_holding_l_list.append(licks)
+                self.animal.all_holding_l_index.append(len(self.animal.all_holding_l))
+                self.animal.reflex_lick_perc_l.append(len(licks(licks <= self.reflex_length)) / len(licks))
+                self.non_reflexive_l.append(licks(licks > self.reflex_length))
+              #  print(f'std of current licking is {np.std(licks)}')
+                self.animal.holding_l_std.append(np.std(licks))
                 self.holding_l.append(lick_mean)
                 self.opt_diff_l.append(mean_lick_diff)
                 self.perc_rewarded_l.append(perc_rewarded_perf)
@@ -323,8 +388,10 @@ class Session:
 
     def updateSessionStats(self):
         if len(self.holding_s) > 0:
-            self.animal.holding_s.extend(x for x in self.holding_s if not math.isnan(x))
+            non_nan_values = [x for x in self.holding_s if not math.isnan(x)]
+            self.animal.holding_s.extend(non_nan_values)
             self.animal.holding_s_mean.append(mean(self.holding_s))
+
             if len(self.holding_s_good) > 0:
                 self.animal.all_holding_s_good.extend(x for x in self.holding_s_good if not math.isnan(x))
                 self.animal.holding_s_mean_good.append(mean(self.holding_s_good))
@@ -333,8 +400,12 @@ class Session:
         else:
             self.animal.holding_s_mean.append(np.nan)
         if len(self.holding_l) > 0:
-            self.animal.holding_l.extend(x for x in self.holding_l if not math.isnan(x))
+            non_nan_values = [x for x in self.holding_l if not math.isnan(x)]
+            # Calculate the standard deviation of non-NaN values
+            self.animal.holding_l.extend(non_nan_values)
             self.animal.holding_l_mean.append(mean(self.holding_l))
+
+            #self.animal.holding_l_std.append(np.std(non_nan_values))
             if len(self.holding_l_good) > 0:
                 self.animal.all_holding_l_good.extend(x for x in self.holding_l_good if not math.isnan(x))
                 self.animal.holding_l_mean_good.append(mean(self.holding_l_good))
@@ -346,7 +417,7 @@ class Session:
 
         self.animal.bg_restart_s_all.extend(self.bg_repeats_s)
         self.animal.bg_restart_l_all.extend(self.bg_repeats_l)
-        print(len(self.animal.bg_restart_s))
+       # print(len(self.animal.bg_restart_s))
 
         if len(self.bg_repeats_s) > 0:
             self.animal.bg_restart_s.append(mean(self.bg_repeats_s))

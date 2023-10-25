@@ -29,6 +29,11 @@ class Animal:
 
         self.all_holding_s = []
         self.all_holding_l = []
+        self.all_holding_s_list = []
+        self.all_holding_l_list = []
+
+        self.holding_s_std = []
+        self.holding_l_std = []
 
         self.lick_prob_s = []
         self.lick_prob_l = []
@@ -38,6 +43,9 @@ class Animal:
 
         self.miss_perc_s = []
         self.miss_perc_l = []
+
+        self.reflex_lick_perc_s = []
+        self.reflex_lick_perc_l = []
 
         self.sl_blk_start_var = []
         self.ls_blk_start_var = []
@@ -77,9 +85,17 @@ class Animal:
 
         self.prob_at_lick_s_good = []
         self.prob_at_lick_l_good = []
+
+        self.all_holding_s_index = []
+        self.all_holding_l_index = []
+
+        self.sessoion_index = []
+
+        self.mean_consumption_length = []
+        self.mean_consumption_licks = []
     def allSession(self, path, has_block):
         self.session_num = len(self.sessions)
-        print(self.session_num)
+        #print(self.session_num)
         for j in range(self.session_num):
             curr_session_path = path + '\\' + self.sessions[j]
             os.chdir(curr_session_path)
@@ -87,7 +103,10 @@ class Animal:
             curr_session = Session(self, file_path, has_block, self.task_params)
             curr_session.parseSessionStats()
             curr_session.updateSessionStats()
+            #self.session_index.append(self.all)
             self.session_list.append(curr_session)
+        print(f'std for l session {self.holding_l_std}')
+        print(self.holding_s_std)
 
     # this function will take moving average across windows of trials
     def getMovingAvg(self, window_size):
