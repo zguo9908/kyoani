@@ -5,9 +5,8 @@ import plots
 def main():
     pass
 
-# task_type = 'blocks', 'no_blocks'
 
-global task_type, task_params
+global task_type, has_block, task_params
 task_type = "regular"
 has_block = False
 task_params = "old_params"
@@ -27,5 +26,5 @@ if __name__ == '__main__':
     else:
         beh.PlotCohortDiff()
     plots.rawPlots(mice, task_params=task_params, has_block=has_block, saving=True)
-    plots.violins(mice, task_params=task_params,  has_block=has_block, saving=True)
+    plots.violins(mice, task_params=task_params, has_block=has_block, saving=True)
     plots.plotSession(mice, -1, task_params=task_params, has_block=has_block, saving=True)

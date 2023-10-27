@@ -46,6 +46,10 @@ class Animal:
 
         self.reflex_lick_perc_s = []
         self.reflex_lick_perc_l = []
+        self.non_reflexive_l_mean = []
+        self.non_reflexive_l_std = []
+        self.non_reflexive_s_mean = []
+        self.non_reflexive_s_std = []
 
         self.sl_blk_start_var = []
         self.ls_blk_start_var = []

@@ -316,8 +316,9 @@ class Session:
                 self.animal.all_holding_s.extend(licks)
                 self.animal.all_holding_s_list.append(licks)
                 self.animal.all_holding_s_index.append(len(self.animal.all_holding_s))
-                self.animal.reflex_lick_perc_s.append(len(licks(licks <= self.reflex_length))/len(licks))
-                self.non_reflexive_s.append(licks(licks > self.reflex_length))
+                self.animal.reflex_lick_perc_s.append(len(licks[licks <= self.reflex_length])/len(licks))
+                self.non_reflexive_s.append((licks[licks > self.reflex_length]))
+                print(self.non_reflexive_s)
                # print(f'std of current licking is {np.std(licks)}')
                 self.animal.holding_s_std.append(np.std(licks))
                 self.holding_s.append(lick_mean)
@@ -340,9 +341,9 @@ class Session:
                 self.animal.all_holding_l.extend(licks)
                 self.animal.all_holding_l_list.append(licks)
                 self.animal.all_holding_l_index.append(len(self.animal.all_holding_l))
-                self.animal.reflex_lick_perc_l.append(len(licks(licks <= self.reflex_length)) / len(licks))
-                self.non_reflexive_l.append(licks(licks > self.reflex_length))
-              #  print(f'std of current licking is {np.std(licks)}')
+                self.animal.reflex_lick_perc_l.append(len(licks[licks <= self.reflex_length]) / len(licks))
+                self.non_reflexive_l.append(licks[licks > self.reflex_length])
+                # print(self.non_reflexive_l)
                 self.animal.holding_l_std.append(np.std(licks))
                 self.holding_l.append(lick_mean)
                 self.opt_diff_l.append(mean_lick_diff)
@@ -391,12 +392,10 @@ class Session:
             non_nan_values = [x for x in self.holding_s if not math.isnan(x)]
             self.animal.holding_s.extend(non_nan_values)
             self.animal.holding_s_mean.append(mean(self.holding_s))
-
             if len(self.holding_s_good) > 0:
                 self.animal.all_holding_s_good.extend(x for x in self.holding_s_good if not math.isnan(x))
                 self.animal.holding_s_mean_good.append(mean(self.holding_s_good))
                 print(f"mean good trial licking {self.animal.holding_s_mean_good}")
-
         else:
             self.animal.holding_s_mean.append(np.nan)
         if len(self.holding_l) > 0:
@@ -404,8 +403,6 @@ class Session:
             # Calculate the standard deviation of non-NaN values
             self.animal.holding_l.extend(non_nan_values)
             self.animal.holding_l_mean.append(mean(self.holding_l))
-
-            #self.animal.holding_l_std.append(np.std(non_nan_values))
             if len(self.holding_l_good) > 0:
                 self.animal.all_holding_l_good.extend(x for x in self.holding_l_good if not math.isnan(x))
                 self.animal.holding_l_mean_good.append(mean(self.holding_l_good))
@@ -417,88 +414,66 @@ class Session:
 
         self.animal.bg_restart_s_all.extend(self.bg_repeats_s)
         self.animal.bg_restart_l_all.extend(self.bg_repeats_l)
-       # print(len(self.animal.bg_restart_s))
 
-        if len(self.bg_repeats_s) > 0:
-            self.animal.bg_restart_s.append(mean(self.bg_repeats_s))
-        else:
-            self.animal.bg_restart_s.append(np.nan)
-        if len(self.bg_repeats_l) > 0:
-            self.animal.bg_restart_l.append(mean(self.bg_repeats_l))
-        else:
-            self.animal.bg_restart_l.append(np.nan)
+        non_reflexive_s_mean = np.mean(self.non_reflexive_s) if len(self.non_reflexive_s) > 0 else np.nan
+        non_reflexive_l_mean = np.mean(self.non_reflexive_l) if len(self.non_reflexive_l) > 0 else np.nan
+        non_reflexive_s_std = np.std(self.non_reflexive_s) if len(self.non_reflexive_s) > 0 else np.nan
+        non_reflexive_l_std = np.std(self.non_reflexive_l) if len(self.non_reflexive_l) > 0 else np.nan
+        self.animal.non_reflexive_s_mean.append(non_reflexive_s_mean)
+        self.animal.non_reflexive_s_std.append(non_reflexive_s_std)
+        self.animal.non_reflexive_l_mean.append(non_reflexive_l_mean)
+        self.animal.non_reflexive_l_std.append(non_reflexive_l_std)
 
-        if len(self.opt_diff_s) > 0:
-            self.animal.opt_diff_s.append(mean(self.opt_diff_s))
-            if len(self.opt_diff_s_good) >0:
-                self.animal.opt_diff_s_good.append(mean(self.opt_diff_s_good))
-        else:
-            self.animal.opt_diff_s.append(np.nan)
-        if len(self.opt_diff_l) > 0:
-            self.animal.opt_diff_l.append(mean(self.opt_diff_l))
-            if len(self.opt_diff_l_good) >0:
-                self.animal.opt_diff_l_good.append(mean(self.opt_diff_l_good))
-        else:
-            self.animal.opt_diff_l.append(np.nan)
+        self.animal.bg_restart_s.append(mean(self.bg_repeats_s) if len(self.bg_repeats_s) > 0 else np.nan)
+        self.animal.bg_restart_l.append(mean(self.bg_repeats_l) if len(self.bg_repeats_l) > 0 else np.nan)
 
-        if len(self.perc_rewarded_s) > 0:
-            self.animal.perc_rewarded_s.append(mean(self.perc_rewarded_s))
-            if len(self.perc_rewarded_s_good) > 0 :
-                self.animal.perc_rewarded_s_good.append(mean(self.perc_rewarded_s_good))
-        else:
-            self.animal.perc_rewarded_s.append(np.nan)
-        if len(self.perc_rewarded_l) > 0:
-            self.animal.perc_rewarded_l.append(mean(self.perc_rewarded_l))
-            if len(self.perc_rewarded_l_good) > 0:
-                self.animal.perc_rewarded_l_good.append(mean(self.perc_rewarded_l_good))
-        else:
-            self.animal.perc_rewarded_l.append(np.nan)
+        self.animal.opt_diff_s.append(mean(self.opt_diff_s) if len(self.opt_diff_s) > 0 else np.nan)
+        self.animal.opt_diff_s_good.append(mean(self.opt_diff_s_good) if len(self.opt_diff_s) > 0 else np.nan)
+        self.animal.opt_diff_l.append(mean(self.opt_diff_l) if len(self.opt_diff_l) > 0 else np.nan)
+        self.animal.opt_diff_l_good.append(mean(self.opt_diff_l_good) if len(self.opt_diff_l) > 0 else np.nan)
 
-        if len(self.prob_at_lick_s) > 0:
-            self.animal.lick_prob_s.append(mean(self.prob_at_lick_s))
-            if len(self.prob_at_lick_s_good) > 0:
-                self.animal.prob_at_lick_s_good.append(mean(self.prob_at_lick_s_good))
-        else:
-            self.animal.lick_prob_s.append(np.nan)
+        self.animal.perc_rewarded_s.append(mean(self.perc_rewarded_s) if len(self.perc_rewarded_s) > 0 else np.nan)
+        self.animal.perc_rewarded_s_good.append(mean(self.perc_rewarded_s_good) if len(self.perc_rewarded_s_good)>0 else np.nan)
+        self.animal.perc_rewarded_l.append(mean(self.perc_rewarded_l) if len(self.perc_rewarded_l) > 0 else np.nan)
+        self.animal.perc_rewarded_l_good.append(mean(self.perc_rewarded_l_good) if len(self.perc_rewarded_l_good)>0 else np.nan)
 
-        if len(self.prob_at_lick_l) > 0:
-            self.animal.lick_prob_l.append(mean(self.prob_at_lick_l))
-            if len(self.prob_at_lick_l_good) > 0:
-                self.animal.prob_at_lick_l_good.append(mean(self.prob_at_lick_l_good))
-        else:
-            self.animal.lick_prob_l.append(np.nan)
+        self.animal.lick_prob_s.append(mean(self.prob_at_lick_s) if len(self.prob_at_lick_s) > 0 else np.nan)
+        self.animal.prob_at_lick_s_good.append(mean(self.prob_at_lick_s_good)if len(self.prob_at_lick_s_good) > 0 else np.nan)
+        self.animal.lick_prob_l.append(mean(self.prob_at_lick_l) if len(self.prob_at_lick_l) > 0 else np.nan)
+        self.animal.prob_at_lick_l_good.append(mean(self.prob_at_lick_l_good) if len(self.prob_at_lick_l_good) > 0 else np.nan)
 
         # only for tasks with blocks
-        if len(self.blk_start_var) > 0:
-            # print(f"number of start var {self.blk_start_var}")
-            valid_start_var = [x for x in self.blk_start_var if not math.isnan(x)]
-            # print(np.count_nonzero(np.isnan(self.blk_start_var)))
-            valid_end_var = [x for x in self.blk_end_var if not math.isnan(x)]
-            # print(np.count_nonzero(np.isnan(self.blk_end_var)))
-            self.animal.blk_start_var.extend(valid_start_var)
-            self.animal.blk_end_var.extend(x for x in self.blk_end_var if not math.isnan(x))
-            self.animal.blk_start_slope.append(self.blk_start_slope)
-            self.animal.blk_end_slope.append(self.blk_end_slope)
-            num_block = len(self.block_type)
-            # print(f"number of valid start var {len(valid_start_var)}")
-            # print(f"number of valid blocks {len(self.valid_block_type)}")
-            print(self.valid_block_type)
-            for i in range(0, len(self.valid_block_type)-1):
-                # print(f"i is now {i}")
-                # interested in start var for all blks except the first one
-                if i >= 1 and self.block_type[i] == "s":
-                    # print(f"{i} block l-s start")
-                    self.animal.ls_blk_start_var.append(valid_start_var[i])
-                elif i >= 1 and self.block_type[i] == "l":
-                    # print(f"{i} block s-l start")
-                    self.animal.sl_blk_start_var.append(valid_start_var[i])
+        if self.has_block:
+            if len(self.blk_start_var) > 0:
+                # print(f"number of start var {self.blk_start_var}")
+                valid_start_var = [x for x in self.blk_start_var if not math.isnan(x)]
+                # print(np.count_nonzero(np.isnan(self.blk_start_var)))
+                valid_end_var = [x for x in self.blk_end_var if not math.isnan(x)]
+                # print(np.count_nonzero(np.isnan(self.blk_end_var)))
+                self.animal.blk_start_var.extend(valid_start_var)
+                self.animal.blk_end_var.extend(x for x in self.blk_end_var if not math.isnan(x))
+                self.animal.blk_start_slope.append(self.blk_start_slope)
+                self.animal.blk_end_slope.append(self.blk_end_slope)
+                num_block = len(self.block_type)
+                # print(f"number of valid start var {len(valid_start_var)}")
+                # print(f"number of valid blocks {len(self.valid_block_type)}")
+                print(self.valid_block_type)
+                for i in range(0, len(self.valid_block_type)-1):
+                    # print(f"i is now {i}")
+                    # interested in start var for all blks except the first one
+                    if i >= 1 and self.block_type[i] == "s":
+                        # print(f"{i} block l-s start")
+                        self.animal.ls_blk_start_var.append(valid_start_var[i])
+                    elif i >= 1 and self.block_type[i] == "l":
+                        # print(f"{i} block s-l start")
+                        self.animal.sl_blk_start_var.append(valid_start_var[i])
 
-                if i < num_block-1 and self.block_type[i] == "s":
-                    # print(f"{i} block s-l end")
-                    self.animal.sl_blk_end_var.append(valid_end_var[i])
-                elif i < num_block-1 and self.block_type[i] == "l":
-                    # print(f"{i} block l-s end")
-                    self.animal.ls_blk_end_var.append(valid_end_var[i])
+                    if i < num_block-1 and self.block_type[i] == "s":
+                        # print(f"{i} block s-l end")
+                        self.animal.sl_blk_end_var.append(valid_end_var[i])
+                    elif i < num_block-1 and self.block_type[i] == "l":
+                        # print(f"{i} block l-s end")
+                        self.animal.ls_blk_end_var.append(valid_end_var[i])
 
 
 

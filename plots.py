@@ -23,28 +23,134 @@ def rawPlots(mice, task_params, has_block, saving):
     print(f'plotting and saving in {path}')
     for i in range(len(mice)):
         curr_animal_path = path + '\\' + mice[i].name
-        print(curr_animal_path)
+        # print(curr_animal_path)
         os.chdir(curr_animal_path)
-        # print(os.listdir())
-        # file_path = curr_animal_path + '\\' + os.listdir()[0]
 
+        fig, ax = plt.subplots()
+        colors = ['blue', 'green', 'red']
+        trial_type = ['miss', 'repeat', 'good']
+        # Width of each bar
+        bar_width = 0.35
+
+        if len(mice[i].holding_s_std) > 0:
+            session_num = len(mice[i].holding_s_mean)
+            x = np.arange(session_num)
+            good_perc = [1 - (p1 + p2) for p1, p2 in zip(mice[i].miss_perc_s, mice[i].bg_restart_s)]
+
+            fig, ax = plt.subplots()  # Create a new figure and axes for each plot
+
+            for j in range(session_num):  # Iterate over the sessions
+                x_values = [x[j]]  # X-coordinate for the current session
+                bottom = [0]  # Initialize the bottom values for the bars
+
+                for trial in range(3):  # Iterate over the three trial types
+                    data = 0  # Initialize data for the current trial type
+                    if trial == 0:
+                        data = mice[i].miss_perc_s[j]
+                    elif trial == 1:
+                        data = mice[i].bg_restart_s[j]
+                    else:
+                        data = good_perc[j]
+
+                    plt.bar(x_values, data, width=bar_width, label=trial_type[trial], color=colors[trial],
+                            bottom=bottom)
+                    bottom[0] += data
+
+            ax.set_xlabel('Sessions')
+            ax.set_ylabel('Percentage')
+            ax.set_title('Percentage of Different Trial Types Across Sessions')
+            ax.set_xticks(x)
+            ax.set_xticklabels(range(1, session_num + 1))
+            ax.legend(trial_type)
+            plt.savefig(f'{mice[i].name}_perc_diff_trials_s.svg')
+            plt.close()
+
+        if len(mice[i].holding_l_std) > 0:
+            session_num = len(mice[i].holding_l_mean)
+            x = np.arange(session_num)
+            good_perc = [1 - (p1 + p2) for p1, p2 in zip(mice[i].miss_perc_l, mice[i].bg_restart_l)]
+            fig, ax = plt.subplots()
+
+            for j in range(session_num):  # Iterate over the sessions
+                x_values = [x[j]]  # X-coordinate for the current session
+                bottom = [0]  # Initialize the bottom values for the bars
+
+                for trial in range(3):  # Iterate over the three trial types
+                    data = 0  # Initialize data for the current trial type
+                    if trial == 0:
+                        data = mice[i].miss_perc_l[j]
+                    elif trial == 1:
+                        data = mice[i].bg_restart_l[j]
+                    else:
+                        data = good_perc[j]
+
+                    plt.bar(x_values, data, width=bar_width, label=trial_type[trial], color=colors[trial],
+                            bottom=bottom)
+                    bottom[0] += data
+
+            ax.set_xlabel('Sessions')
+            ax.set_ylabel('Percentage')
+            ax.set_title('Percentage of Different Trial Types Across Sessions')
+            ax.set_xticks(x)
+            ax.set_xticklabels(range(1, session_num + 1))
+            ax.legend(trial_type)
+            plt.savefig(f'{mice[i].name}_perc_diff_trials_l.svg')
+            plt.close()
+        # if len(mice[i].holding_s_std) > 0:
+        #     session_num = len(mice[i].holding_s_mean)
+        #     x = np.arange(session_num)
+        #     miss_perc = np.array(mice[i].miss_perc_s)
+        #     restart_perc = np.array(mice[i].bg_restart_s)
+        #     good_perc = 1 - miss_perc - restart_perc
+        #
+        #     fig, ax = plt.subplots()  # Create a new figure and axes for each plot
+        #
+        #     bottom = np.zeros(session_num)
+        #     for j, color in enumerate(colors):
+        #         plt.bar(x, [p[j] for p in [miss_perc, restart_perc, good_perc]], width=bar_width,
+        #                 label=trial_type[j], color=color, bottom=bottom)
+        #         bottom += [p[j] for p in [miss_perc, restart_perc, good_perc, good_perc]]
+        #
+        #     ax.set_xlabel('Sessions')
+        #     ax.set_ylabel('Percentage')
+        #     ax.set_title('Percentage of Different Trial Types Across Sessions')
+        #     ax.set_xticks(x)
+        #     ax.set_xticklabels([f'Session {s}' for s in range(1, session_num + 1)])
+        #     ax.legend()
+        #     plt.savefig(f'{mice[i].name}_perc_diff_trials_s.svg')
+        #     plt.close()
+        #
+        # if len(mice[i].holding_l_std) > 0:
+        #     session_num = len(mice[i].holding_l_mean)
+        #     x = np.arange(session_num)
+        #     miss_perc = np.array(mice[i].miss_perc_l)
+        #     restart_perc = np.array(mice[i].bg_restart_l)
+        #     good_perc = 1 - miss_perc - restart_perc
+        #     fig, ax = plt.subplots()
+        #     bottom = np.zeros(session_num)
+        #     for j, color in enumerate(colors):
+        #         plt.bar(x, [p[j] for p in [miss_perc, restart_perc, good_perc]], width=bar_width,
+        #                 label=trial_type[j], color=color, bottom=bottom)
+        #         bottom += [p[j] for p in [miss_perc, restart_perc, good_perc, good_perc]]
+        #     ax.set_xlabel('Sessions')
+        #     ax.set_ylabel('Percentage')
+        #     ax.set_title('Percentage of Different Trial Types Across Sessions')
+        #     ax.set_xticks(x)
+        #     ax.set_xticklabels([f'Session {s}' for s in range(1, session_num + 1)])
+        #     ax.legend()
+        #     plt.savefig(f'{mice[i].name}_perc_diff_trials_l.svg')
+        #     plt.close()
+
+
+
+        # all licks
         fig, ax = plt.subplots(figsize=(10, 5))
-        print(f' holding std is {mice[i].holding_l_std}')
-        print(f' holding l is {mice[i].holding_l_mean}')
-       # mice[i].holding_s_std = float(mice[i].holding_s_std)
-
-        x1 = np.arange(1, len(mice[i].holding_s_mean)+1)  # X-axis values
-        x2 = np.arange(1, len(mice[i].holding_l_mean)+1)  # X-axis values
-
         if len(mice[i].holding_s_std) > 0:
             plt.errorbar(range(len(mice[i].holding_s_mean)), mice[i].holding_s_mean, yerr=mice[i].holding_s_std, fmt='o', color='blue')
             ax.legend(['short'])
         if len(mice[i].holding_l_std) > 0:
             plt.errorbar(range(len(mice[i].holding_l_mean)), mice[i].holding_l_mean, yerr=mice[i].holding_l_std, fmt='o', color='red')
             ax.legend(['long'])
-
-       # plt.errorbar(x1, y, yerr=std_dev, fmt='o-', label='Data', capsize=5)
-
         ax.set_title(f'{mice[i].name} holding times')
         ax.set_xlabel("session number")
         ax.set_ylabel("holding time(s)")
@@ -52,6 +158,22 @@ def rawPlots(mice, task_params, has_block, saving):
         plt.savefig(f'{mice[i].name}_holding_times.svg')
         plt.close()
 
+        #non impulsive licks
+        fig, ax = plt.subplots(figsize=(10, 5))
+        if len(mice[i].holding_s_std) > 0:
+            plt.errorbar(range(len(mice[i].non_reflexive_s_mean)), mice[i].non_reflexive_s_mean, yerr=mice[i].non_reflexive_s_std,
+                         fmt='o', color='blue')
+            ax.legend(['short'])
+        if len(mice[i].holding_l_std) > 0:
+            plt.errorbar(range(len(mice[i].non_reflexive_l_mean)), mice[i].non_reflexive_l_mean, yerr=mice[i].non_reflexive_l_std,
+                         fmt='o', color='red')
+            ax.legend(['long'])
+        ax.set_title(f'{mice[i].name} holding times')
+        ax.set_xlabel("session number")
+        ax.set_ylabel("holding time(s)")
+        plt.savefig(f'{mice[i].name}_non_impulsive_licks.svg')
+        plt.close()
+        # holding mean - optimal
         fig, ax = plt.subplots(figsize=(10, 5))
         ax.set_title(f'{mice[i].name} holding - optimal time')
         plt.plot(mice[i].opt_diff_s, 'b+')
@@ -61,9 +183,9 @@ def rawPlots(mice, task_params, has_block, saving):
         ax.set_ylabel("avg licking - optimal(s)")
         plt.savefig(f'{mice[i].name} avg licking - optimal.svg')
         plt.close()
-
+        # not working
         fig, ax = plt.subplots(figsize=(10, 5))
-        print(f'number of good means {mice[i].holding_s_mean_good}')
+        # print(f'number of good means {mice[i].holding_s_mean_good}')
         plt.plot(mice[i].holding_s_mean_good, 'bo')
         plt.plot(mice[i].holding_l_mean_good, 'ro')
         ax.set_title(f'{mice[i].name} good trials holding times')
@@ -82,7 +204,6 @@ def rawPlots(mice, task_params, has_block, saving):
         ax.set_ylabel("avg licking - optimal(s)")
         plt.savefig(f'{mice[i].name} good trials avg licking - optimal.svg')
         plt.close()
-
 
         fig, ax = plt.subplots(figsize=(10, 5))
         plt.plot(mice[i].mean_consumption_length, 'bo')
@@ -124,7 +245,7 @@ def rawPlots(mice, task_params, has_block, saving):
 
         ax.set_xlabel('session')
         ax.set_ylabel('time (s)')
-        ax.set_title(f'{mice[i]} distribution of lick times throughout sessions')
+        ax.set_title(f'{mice[i].name} distribution of lick times throughout sessions')
         ax.legend()
         if saving:
             plt.savefig(f'{mice[i].name} lick time distribution.svg')
@@ -157,7 +278,7 @@ def rawPlots(mice, task_params, has_block, saving):
         ax.set_xlabel("trial")
         ax.set_ylabel("holing time(s)")
         ax.legend(['short', 'long'])
-        plt.axis([0, 2000, 0, 13])
+        plt.axis([0, 8000, 0, 13])
         if saving:
             plt.savefig(f'{mice[i].name}_moving_avg_perf.svg')
         plt.close()
@@ -182,6 +303,17 @@ def rawPlots(mice, task_params, has_block, saving):
         ax.legend(['short', 'long'])
         if saving:
             plt.savefig(f'{mice[i].name}_missed_trials_perc.svg')
+        plt.close()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.plot(mice[i].reflex_lick_perc_s, 'b+')
+        plt.plot(mice[i].reflex_lick_perc_l, 'r+')
+        ax.set_title(f'{mice[i].name} impulsive licks perc')
+        ax.set_xlabel("session")
+        ax.set_ylabel("%")
+        ax.legend(['short', 'long'])
+        if saving:
+            plt.savefig(f'{mice[i].name}_impulsive_lick_perc.svg')
         plt.close()
 
         # fig, ax = plt.subplots(figsize=(10, 5))
@@ -396,7 +528,7 @@ def plotSession(mice, session, task_params, has_block, saving):
             ax.set_xlabel('blocks within session')
             ax.set_ylabel('wait time')
             all_licks = session_to_plot.session_holding_times
-            print(len(all_licks))
+            # print(len(all_licks))
             for j in range(1, len(all_licks)):
                 if session_to_plot.block_type[0] == 's':
                     if j % 2 == 0:
@@ -408,7 +540,7 @@ def plotSession(mice, session, task_params, has_block, saving):
                         labels.append("l")
                     else:
                         labels.append("s")
-            print(session_to_plot.file_path)
+            # print(session_to_plot.file_path)
             bp = ax.violinplot(all_licks, showmeans=True)
             for i, pc in enumerate(bp["bodies"], 1):
                 if i % 2 != 0:
