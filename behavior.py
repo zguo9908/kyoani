@@ -9,7 +9,7 @@ from pkg_resources import resource_string
 from animal import Animal
 from session import Session
 from scipy.stats import ttest_ind
-
+from scipy import stats
 
 class BehaviorAnalysis:
     def get_exp_config(self):
@@ -136,8 +136,8 @@ class BehaviorAnalysis:
         plt.savefig('all animal waiting.svg')
 
         # bg repeats plot
-        long_impusive_perc_averages, long_impusive_perc_std = calculate_padded_averages_and_std(self.long_impulsive_perc)
-        short_impusive_perc_averages, short_impusive_perc_std = calculate_padded_averages_and_std(self.short_impulsive_perc)
+        long_impusive_perc_averages, long_impusive_perc_std, padded_long = calculate_padded_averages_and_std(self.long_impulsive_perc)
+        short_impusive_perc_averages, short_impusive_perc_std, padded_short = calculate_padded_averages_and_std(self.short_impulsive_perc)
 
         fig, ax = plt.subplots()
         # Plot the line graph for long sessions
@@ -161,14 +161,14 @@ class BehaviorAnalysis:
                         label='Standard Deviation_short',
                         color='lightblue')
         ax.set_xlabel('session #')
-        ax.set_ylabel('wait times')
+        ax.set_ylabel('percentage')
         ax.legend()
         plt.savefig('impulsive licking percentage.svg')
         plt.close()
 
         # bg repeats plot
-        long_repeat_averages, long_std_repeat = calculate_padded_averages_and_std(self.long_bg_repeat)
-        short_repeat_averages, short_std_repeat = calculate_padded_averages_and_std(self.short_bg_repeat)
+        long_repeat_averages, long_std_repeat, padded_long = calculate_padded_averages_and_std(self.long_bg_repeat)
+        short_repeat_averages, short_std_repeat, padded_short = calculate_padded_averages_and_std(self.short_bg_repeat)
 
         fig, ax = plt.subplots()
         # Plot the line graph for long sessions
@@ -192,20 +192,21 @@ class BehaviorAnalysis:
                         label='Standard Deviation_short',
                         color='lightblue')
         ax.set_xlabel('session #')
-        ax.set_ylabel('wait times')
+        ax.set_ylabel('percentage')
         ax.legend()
         plt.savefig('bg repeats for long vs short cohorts.svg')
         plt.close()
 
         # session plots
-        long_session_averages, long_std_session = calculate_padded_averages_and_std(self.long_session_mean)
-        short_session_averages, short_std_session = calculate_padded_averages_and_std(self.short_session_mean)
+        long_session_averages, long_std_session, padded_long = calculate_padded_averages_and_std(self.long_session_mean)
+        short_session_averages, short_std_session, padded_short = calculate_padded_averages_and_std(self.short_session_mean)
 
         fig, ax = plt.subplots()
         # Plot the line graph for long sessions
         x = list(range(1, len(long_session_averages) + 1))
         y = long_session_averages
         ax.plot(x, y, marker='o', label='Average_long', color='red')
+        ax.axhline(y=self.optimal_wait[1], color='r', linestyle='--', label='Optimal_long')
 
         # Shade the area around the line plot to represent the standard deviation for long sessions
         ax.fill_between(x, [mean - std for mean, std in zip(y, long_std_session)],
@@ -216,12 +217,17 @@ class BehaviorAnalysis:
         x = list(range(1, len(short_session_averages) + 1))
         y = short_session_averages
         ax.plot(x, y, marker='o', label='Average_short', color='blue')
+        ax.axhline(y=self.optimal_wait[0], color='b', linestyle='--', label='Optimal_short')
 
         # Shade the area around the line plot to represent the standard deviation for short sessions
         ax.fill_between(x, [mean - std for mean, std in zip(y, short_std_session)],
                         [mean + std for mean, std in zip(y, short_std_session)], alpha=0.5,
                         label='Standard Deviation_short',
                         color='lightblue')
+        non_impuslive_sig = compare_lists_with_significance(padded_long, padded_short)
+        for i in non_impuslive_sig:
+            ax.annotate('*', xy=(x[i], y[i]), xytext=(x[i], y[i] + 0.1), textcoords='data',
+                        arrowprops=dict(arrowstyle="->"))
         ax.set_xlabel('session #')
         ax.set_ylabel('wait times')
         ax.legend()
@@ -229,13 +235,14 @@ class BehaviorAnalysis:
         plt.close()
 
         # non_impulsive licks
-        long_averages, long_std_deviation = calculate_padded_averages_and_std(self.long_session_nonimpulsive_mean)
-        short_averages, short_std_deviation = calculate_padded_averages_and_std(self.short_session_nonimpulsive_mean)
+        long_averages, long_std_deviation, padded_long = calculate_padded_averages_and_std(self.long_session_nonimpulsive_mean)
+        short_averages, short_std_deviation, padded_short = calculate_padded_averages_and_std(self.short_session_nonimpulsive_mean)
         fig, ax = plt.subplots()
         # Plot the line graph for long sessions
         x = list(range(1, len(long_averages) + 1))
         y = long_averages
         ax.plot(x, y, marker='o', label='Average_long', color='red')
+        ax.axhline(y=self.optimal_wait[1], color='r', linestyle='--', label='Optimal_l')
 
         # Shade the area around the line plot to represent the standard deviation for long sessions
         ax.fill_between(x, [mean - std for mean, std in zip(y, long_std_deviation)],
@@ -245,11 +252,16 @@ class BehaviorAnalysis:
         x = list(range(1, len(short_averages) + 1))
         y = short_averages
         ax.plot(x, y, marker='o', label='Average_short', color='blue')
-
+        ax.axhline(y=self.optimal_wait[0], color='b', linestyle='--', label='Optimal_s')
         # Shade the area around the line plot to represent the standard deviation for short sessions
         ax.fill_between(x, [mean - std for mean, std in zip(y, short_std_deviation)],
                         [mean + std for mean, std in zip(y, short_std_deviation)], alpha=0.5, label='Standard Deviation_short',
                         color='lightblue')
+
+        non_impuslive_sig = compare_lists_with_significance(padded_long, padded_short)
+        for i in non_impuslive_sig:
+            ax.annotate('*', xy=(x[i], y[i]), xytext=(x[i], y[i] + 0.1), textcoords='data',
+                        arrowprops=dict(arrowstyle="->"))
 
         ax.set_xlabel('session #')
         ax.set_ylabel('wait times')
@@ -258,8 +270,8 @@ class BehaviorAnalysis:
         plt.close()
 
         # non_impulsive licks
-        long_com_averages, long_com_std = calculate_padded_averages_and_std(self.long_consumption_length)
-        short_com_averages, short_com_std = calculate_padded_averages_and_std(self.short_consumption_length)
+        long_com_averages, long_com_std, padded_long = calculate_padded_averages_and_std(self.long_consumption_length)
+        short_com_averages, short_com_std, padded_short = calculate_padded_averages_and_std(self.short_consumption_length)
         fig, ax = plt.subplots()
         # Plot the line graph for long sessions
         x = list(range(1, len(long_com_averages) + 1))
@@ -282,6 +294,8 @@ class BehaviorAnalysis:
                         label='Standard Deviation_short',
                         color='lightblue')
 
+
+
         ax.set_xlabel('session #')
         ax.set_ylabel('wait times')
         ax.legend()
@@ -299,4 +313,18 @@ def calculate_padded_averages_and_std(data):
 
     std_deviation = np.std(padded_data, axis=0, ddof=0)
 
-    return averages, std_deviation
+    return averages, std_deviation, padded_data
+
+def compare_lists_with_significance(list1, list2):
+    # Find the minimum length of sublists
+    alpha = 0.05
+    min_length = min(len(sublist1) for sublist1 in list1) if list1 else 0
+    min_length = min(min_length, min(len(sublist2) for sublist2 in list2) if list2 else 0)
+
+    # Perform paired t-tests between the two lists at each position
+    t_test_results = [stats.ttest_ind(sublist1[:min_length], sublist2[:min_length]) for sublist1, sublist2 in zip(list1, list2)]
+
+    # Determine significant locations (p-value < alpha)
+    significant_locations = [i for i, result in enumerate(t_test_results) if result.pvalue < alpha]
+
+    return significant_locations

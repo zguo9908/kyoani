@@ -90,58 +90,12 @@ def rawPlots(mice, task_params, has_block, saving):
 
             ax.set_xlabel('Sessions')
             ax.set_ylabel('Percentage')
-            ax.set_title('Percentage of Different Trial Types Across Sessions')
+            ax.set_title(f'{mice[i].name} Percentage of Different Trial Types')
             ax.set_xticks(x)
             ax.set_xticklabels(range(1, session_num + 1))
             ax.legend(trial_type)
             plt.savefig(f'{mice[i].name}_perc_diff_trials_l.svg')
             plt.close()
-        # if len(mice[i].holding_s_std) > 0:
-        #     session_num = len(mice[i].holding_s_mean)
-        #     x = np.arange(session_num)
-        #     miss_perc = np.array(mice[i].miss_perc_s)
-        #     restart_perc = np.array(mice[i].bg_restart_s)
-        #     good_perc = 1 - miss_perc - restart_perc
-        #
-        #     fig, ax = plt.subplots()  # Create a new figure and axes for each plot
-        #
-        #     bottom = np.zeros(session_num)
-        #     for j, color in enumerate(colors):
-        #         plt.bar(x, [p[j] for p in [miss_perc, restart_perc, good_perc]], width=bar_width,
-        #                 label=trial_type[j], color=color, bottom=bottom)
-        #         bottom += [p[j] for p in [miss_perc, restart_perc, good_perc, good_perc]]
-        #
-        #     ax.set_xlabel('Sessions')
-        #     ax.set_ylabel('Percentage')
-        #     ax.set_title('Percentage of Different Trial Types Across Sessions')
-        #     ax.set_xticks(x)
-        #     ax.set_xticklabels([f'Session {s}' for s in range(1, session_num + 1)])
-        #     ax.legend()
-        #     plt.savefig(f'{mice[i].name}_perc_diff_trials_s.svg')
-        #     plt.close()
-        #
-        # if len(mice[i].holding_l_std) > 0:
-        #     session_num = len(mice[i].holding_l_mean)
-        #     x = np.arange(session_num)
-        #     miss_perc = np.array(mice[i].miss_perc_l)
-        #     restart_perc = np.array(mice[i].bg_restart_l)
-        #     good_perc = 1 - miss_perc - restart_perc
-        #     fig, ax = plt.subplots()
-        #     bottom = np.zeros(session_num)
-        #     for j, color in enumerate(colors):
-        #         plt.bar(x, [p[j] for p in [miss_perc, restart_perc, good_perc]], width=bar_width,
-        #                 label=trial_type[j], color=color, bottom=bottom)
-        #         bottom += [p[j] for p in [miss_perc, restart_perc, good_perc, good_perc]]
-        #     ax.set_xlabel('Sessions')
-        #     ax.set_ylabel('Percentage')
-        #     ax.set_title('Percentage of Different Trial Types Across Sessions')
-        #     ax.set_xticks(x)
-        #     ax.set_xticklabels([f'Session {s}' for s in range(1, session_num + 1)])
-        #     ax.legend()
-        #     plt.savefig(f'{mice[i].name}_perc_diff_trials_l.svg')
-        #     plt.close()
-
-
 
         # all licks
         fig, ax = plt.subplots(figsize=(10, 5))
