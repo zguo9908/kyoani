@@ -2,6 +2,7 @@ import json
 import math
 import os
 
+import seaborn as sns
 import numpy as np
 from matplotlib import pyplot as plt
 from pkg_resources import resource_string
@@ -10,6 +11,7 @@ from animal import Animal
 from session import Session
 from scipy.stats import ttest_ind
 from scipy import stats
+from sklearn.neighbors import KernelDensity
 
 class BehaviorAnalysis:
     def get_exp_config(self):
@@ -30,7 +32,7 @@ class BehaviorAnalysis:
             self.path = os.path.normpath(r'D:\behavior_data') + "\\" + "blocks" + "\\" + task_params
         else:
             self.path = os.path.normpath(r'D:\behavior_data') + "\\" + "no_blocks" + "\\" + task_params
-        print(self.path)
+        # print(self.path)
         os.chdir(self.path)
         self.animal_list = os.listdir()
         self.animal_num = len(self.animal_list)
@@ -50,6 +52,8 @@ class BehaviorAnalysis:
         self.short_bg_repeat = []
         self.long_impulsive_perc = []
         self.short_impulsive_perc = []
+        self.all_licks_by_session_l = []
+        self.all_licks_by_session_s = []
     def getStableTimes(self, mouse):
         for j in range(len(mouse.moving_average_s_var)):
             if not math.isnan(mouse.moving_average_s_var[j]) and mouse.moving_average_s_var[j] < 1:
@@ -109,6 +113,7 @@ class BehaviorAnalysis:
                 self.long_consumption_length.append(self.mice[i].mean_consumption_length)
                 self.long_bg_repeat.append(self.mice[i].bg_restart_l)
                 self.long_impulsive_perc.append(self.mice[i].reflex_lick_perc_l)
+                self.all_licks_by_session_l.append(self.mice[i].all_holding_l_by_session)
             else:
                 self.short_mice_list.append(mouse)
                 self.short_session_mean.append(self.mice[i].holding_s_mean)
@@ -116,6 +121,7 @@ class BehaviorAnalysis:
                 self.short_consumption_length.append(self.mice[i].mean_consumption_length)
                 self.short_bg_repeat.append(self.mice[i].bg_restart_s)
                 self.short_impulsive_perc.append(self.mice[i].reflex_lick_perc_s)
+                self.all_licks_by_session_s.append(self.mice[i].all_holding_s_by_session)
 
         fig, ax = plt.subplots()
         # Iterate through each sublist and plot it as a line
@@ -229,7 +235,7 @@ class BehaviorAnalysis:
             ax.annotate('*', xy=(x[i], y[i]), xytext=(x[i], y[i] + 0.1), textcoords='data',
                         arrowprops=dict(arrowstyle="->"))
         ax.set_xlabel('session #')
-        ax.set_ylabel('wait times')
+        ax.set_ylabel('wait time (s)')
         ax.legend()
         plt.savefig('session average for long vs short cohorts.svg')
         plt.close()
@@ -264,7 +270,7 @@ class BehaviorAnalysis:
                         arrowprops=dict(arrowstyle="->"))
 
         ax.set_xlabel('session #')
-        ax.set_ylabel('wait times')
+        ax.set_ylabel('wait time (s)')
         ax.legend()
         plt.savefig('non impulsive session licks average for long vs short cohorts.svg')
         plt.close()
@@ -297,10 +303,48 @@ class BehaviorAnalysis:
 
 
         ax.set_xlabel('session #')
-        ax.set_ylabel('wait times')
+        ax.set_ylabel('time (s)')
         ax.legend()
         plt.savefig('consumption times long vs short cohorts.svg')
         plt.close()
+
+    def PlotCohortSessionPDEDiff(self):
+        # Define the cohorts (e.g., 'cohort_s' and 'cohort_l')
+        cohorts = ['cohort_s', 'cohort_l']
+        combined_data = [self.all_licks_by_session_s, self.all_licks_by_session_l]
+        max_sessions = max(len(session_data) for session_data in combined_data)
+        max_sessions = max(max(len(data) for data in cohort) for cohort in combined_data)
+        print(f'number of max session {max_sessions}')
+        fig, axes = plt.subplots(max_sessions, 1, figsize=(4,40))
+
+        for session in range(max_sessions):
+            ax = axes[session]
+
+            for cohort_index, cohort in enumerate(cohorts):
+                # Collect licking data for the current session and cohort
+                licking_data = []
+                for animal_data in combined_data[cohort_index]:
+                    if session < len(animal_data):
+                        licking_data.extend(animal_data[session])
+
+                # Plot the KDE for the current cohort in the same subplot
+                if cohort == 'cohort_s':
+                    sns.kdeplot(licking_data, label='Short Cohort', color='blue', ax=ax)
+                else:
+                    sns.kdeplot(licking_data, label='Long Cohort', color='red', ax=ax)
+
+            ax.set_title(f'Session {session + 1}')
+            ax.set_ylabel('Density')
+
+        # Add a common legend to the last subplot
+        axes[-1].set_xlabel('Licking Time')
+        axes[-1].legend()
+
+        plt.tight_layout()
+        plt.savefig('PDE for cohorts across sessions.svg')
+        plt.close()
+
+
 
 def calculate_padded_averages_and_std(data):
     max_length = max(len(sublist) for sublist in data)
@@ -326,5 +370,7 @@ def compare_lists_with_significance(list1, list2):
 
     # Determine significant locations (p-value < alpha)
     significant_locations = [i for i, result in enumerate(t_test_results) if result.pvalue < alpha]
+    print(f'number of significance is {len(significant_locations)}')
 
     return significant_locations
+

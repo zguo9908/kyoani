@@ -34,6 +34,14 @@ class Animal:
 
         self.holding_s_std = []
         self.holding_l_std = []
+        self.holding_s_sem = []
+        self.holding_l_sem = []
+        self.holding_s_median = []
+        self.holding_l_median = []
+        self.holding_s_q25 = []
+        self.holding_s_q75 = []
+        self.holding_l_q25 = []
+        self.holding_l_q75 = []
 
         self.lick_prob_s = []
         self.lick_prob_l = []
@@ -92,6 +100,8 @@ class Animal:
 
         self.all_holding_s_index = []
         self.all_holding_l_index = []
+        self.all_holding_s_by_session = []
+        self.all_holding_l_by_session = []
 
         self.sessoion_index = []
 

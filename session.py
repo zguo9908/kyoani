@@ -3,7 +3,8 @@ import math
 import os
 import statistics
 from statistics import mean
-
+from statistics import median
+from scipy.stats import sem
 import numpy
 import numpy as np
 import pandas as pd
@@ -318,9 +319,12 @@ class Session:
                 self.animal.all_holding_s_index.append(len(self.animal.all_holding_s))
                 self.animal.reflex_lick_perc_s.append(len(licks[licks <= self.reflex_length])/len(licks))
                 self.non_reflexive_s.append((licks[licks > self.reflex_length]))
-                print(self.non_reflexive_s)
                # print(f'std of current licking is {np.std(licks)}')
                 self.animal.holding_s_std.append(np.std(licks))
+                self.animal.holding_s_sem.append(sem(licks))
+                self.animal.holding_s_q25.append(licks.quantile(0.25))
+                self.animal.holding_s_q75.append(licks.quantile(0.75))
+
                 self.holding_s.append(lick_mean)
                 self.opt_diff_s.append(mean_lick_diff)
                 self.perc_rewarded_s.append(perc_rewarded_perf)
@@ -332,7 +336,7 @@ class Session:
                 self.opt_diff_s_good.append(mean_lick_diff_good)
                 self.perc_rewarded_s_good.append(perc_rewarded_perf_good)
                 self.prob_at_lick_s_good.append(mean_prob_at_lick_good)
-                print(f"s good holding number {len(self.holding_s_good)}")
+                # print(f"s good holding number {len(self.holding_s_good)}")
                 if not math.isnan(session_missed_perc):
                     self.animal.miss_perc_s.append(session_missed_perc)
                 else:
@@ -345,6 +349,9 @@ class Session:
                 self.non_reflexive_l.append(licks[licks > self.reflex_length])
                 # print(self.non_reflexive_l)
                 self.animal.holding_l_std.append(np.std(licks))
+                self.animal.holding_l_sem.append(sem(licks))
+                self.animal.holding_l_q25.append(licks.quantile(0.25))
+                self.animal.holding_l_q75.append(licks.quantile(0.75))
                 self.holding_l.append(lick_mean)
                 self.opt_diff_l.append(mean_lick_diff)
                 self.perc_rewarded_l.append(perc_rewarded_perf)
@@ -391,18 +398,22 @@ class Session:
         if len(self.holding_s) > 0:
             non_nan_values = [x for x in self.holding_s if not math.isnan(x)]
             self.animal.holding_s.extend(non_nan_values)
+            self.animal.all_holding_s_by_session.append(non_nan_values)
             self.animal.holding_s_mean.append(mean(self.holding_s))
+            self.animal.holding_s_median.append(median(self.holding_s))
             if len(self.holding_s_good) > 0:
                 self.animal.all_holding_s_good.extend(x for x in self.holding_s_good if not math.isnan(x))
                 self.animal.holding_s_mean_good.append(mean(self.holding_s_good))
-                print(f"mean good trial licking {self.animal.holding_s_mean_good}")
+                # print(f"mean good trial licking {self.animal.holding_s_mean_good}")
         else:
             self.animal.holding_s_mean.append(np.nan)
         if len(self.holding_l) > 0:
             non_nan_values = [x for x in self.holding_l if not math.isnan(x)]
             # Calculate the standard deviation of non-NaN values
             self.animal.holding_l.extend(non_nan_values)
+            self.animal.all_holding_l_by_session.append(non_nan_values)
             self.animal.holding_l_mean.append(mean(self.holding_l))
+            self.animal.holding_l_median.append(median(self.holding_l))
             if len(self.holding_l_good) > 0:
                 self.animal.all_holding_l_good.extend(x for x in self.holding_l_good if not math.isnan(x))
                 self.animal.holding_l_mean_good.append(mean(self.holding_l_good))

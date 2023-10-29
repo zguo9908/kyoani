@@ -58,7 +58,7 @@ def rawPlots(mice, task_params, has_block, saving):
 
             ax.set_xlabel('Sessions')
             ax.set_ylabel('Percentage')
-            ax.set_title('Percentage of Different Trial Types Across Sessions')
+            ax.set_title(f'{mice[i].name} Percentage of Different Trial Types')
             ax.set_xticks(x)
             ax.set_xticklabels(range(1, session_num + 1))
             ax.legend(trial_type)
@@ -97,17 +97,33 @@ def rawPlots(mice, task_params, has_block, saving):
             plt.savefig(f'{mice[i].name}_perc_diff_trials_l.svg')
             plt.close()
 
-        # all licks
+
         fig, ax = plt.subplots(figsize=(10, 5))
         if len(mice[i].holding_s_std) > 0:
-            plt.errorbar(range(len(mice[i].holding_s_mean)), mice[i].holding_s_mean, yerr=mice[i].holding_s_std, fmt='o', color='blue')
-            ax.legend(['short'])
+            x = range(1, len(mice[i].holding_s_mean) + 1)
+            error_low = [max(0, float(median) - float(q25)) for median, q25 in
+                         zip(mice[i].holding_s_median, mice[i].holding_s_q25)]
+            error_high = [max(0, float(q75) - float(median)) for q75, median in
+                          zip(mice[i].holding_s_q75, mice[i].holding_s_median)]
+
+            plt.errorbar(x, mice[i].holding_s_median, yerr=[error_low, error_high], fmt='o', color='blue',
+                         label='Short - median', capsize=5, elinewidth=2, barsabove=True, errorevery=1)
+            plt.plot(x, mice[i].holding_s_mean, 'bs', label='Short - mean', markersize=8, markerfacecolor='none')
         if len(mice[i].holding_l_std) > 0:
-            plt.errorbar(range(len(mice[i].holding_l_mean)), mice[i].holding_l_mean, yerr=mice[i].holding_l_std, fmt='o', color='red')
-            ax.legend(['long'])
+            x = range(1, len(mice[i].holding_l_mean) + 1)
+            error_low = [max(0, float(median) - float(q25)) for median, q25 in
+                         zip(mice[i].holding_l_median, mice[i].holding_l_q25)]
+            error_high = [max(0, float(q75) - float(median)) for q75, median in
+                          zip(mice[i].holding_l_q75, mice[i].holding_l_median)]
+
+            plt.errorbar(x, mice[i].holding_l_median, yerr=[error_low, error_high], fmt='o', color='red',
+                         label='Long - median', capsize=5, elinewidth=2, barsabove=True, errorevery=1)
+            plt.plot(x, mice[i].holding_l_mean, 'ro', label='Long - mean', markersize=8, markerfacecolor='none')
+
         ax.set_title(f'{mice[i].name} holding times')
         ax.set_xlabel("session number")
         ax.set_ylabel("holding time(s)")
+        ax.legend(loc='upper right')
 
         plt.savefig(f'{mice[i].name}_holding_times.svg')
         plt.close()
