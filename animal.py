@@ -81,6 +81,8 @@ class Animal:
         self.bg_restart_l = []
         self.bg_restart_s_all = []
         self.bg_restart_l_all = []
+        self.bg_restart_licks_s = []
+        self.bg_restart_licks_l = []
         self.session_list = []
 
         self.all_holding_s_good = []
@@ -107,6 +109,13 @@ class Animal:
 
         self.mean_consumption_length = []
         self.mean_consumption_licks = []
+
+        self.mean_background_length_from_consumption_s = []
+        self.mean_background_lick_from_consumption_s = []
+        self.perc_bout_into_background_s = []
+        self.mean_background_length_from_consumption_l = []
+        self.mean_background_lick_from_consumption_l = []
+        self.perc_bout_into_background_l = []
     def allSession(self, path, has_block):
         self.session_num = len(self.sessions)
         #print(self.session_num)
@@ -119,8 +128,8 @@ class Animal:
             curr_session.updateSessionStats()
             #self.session_index.append(self.all)
             self.session_list.append(curr_session)
-        print(f'std for l session {self.holding_l_std}')
-        print(self.holding_s_std)
+        # print(f'std for l session {self.holding_l_std}')
+        # print(self.holding_s_std)
 
     # this function will take moving average across windows of trials
     def getMovingAvg(self, window_size):

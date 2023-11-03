@@ -153,6 +153,17 @@ def rawPlots(mice, task_params, has_block, saving):
         ax.set_ylabel("avg licking - optimal(s)")
         plt.savefig(f'{mice[i].name} avg licking - optimal.svg')
         plt.close()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.set_title(f'{mice[i].name} background repeat lick average')
+        plt.plot(mice[i].bg_restart_licks_s, 'b+')
+        plt.plot(mice[i].bg_restart_licks_l, 'r+')
+        ax.legend(['short', 'long'])
+        ax.set_xlabel("session")
+        ax.set_ylabel("mean background repeat times")
+        plt.savefig(f'{mice[i].name} repeat triggered times.svg')
+        plt.close()
+
         # not working
         fig, ax = plt.subplots(figsize=(10, 5))
         # print(f'number of good means {mice[i].holding_s_mean_good}')
@@ -181,6 +192,39 @@ def rawPlots(mice, task_params, has_block, saving):
         ax.set_xlabel("session")
         ax.set_ylabel("consumption time(s)")
         plt.savefig(f'{mice[i].name} mean consumption lengths.svg')
+        plt.close()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.plot(mice[i].mean_background_length_from_consumption_s, 'b--')
+        plt.plot(mice[i].mean_background_length_from_consumption_l, 'r--')
+        ax.set_title(f'{mice[i].name} background repeat from consumption bout')
+        ax.set_xlabel("session")
+        ax.set_ylabel("time (s)")
+        ax.legend(['short', 'long'])
+        if saving:
+            plt.savefig(f'{mice[i].name} mean_background_length_from_consumption.svg')
+        plt.close()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.plot(mice[i].mean_background_lick_from_consumption_s, 'b--')
+        plt.plot(mice[i].mean_background_lick_from_consumption_l, 'r--')
+        ax.set_title(f'{mice[i].name} mean number of licks from previous consumption bout')
+        ax.set_xlabel("session")
+        ax.set_ylabel("licks")
+        ax.legend(['short', 'long'])
+        if saving:
+            plt.savefig(f'{mice[i].name} mean_background_lick_from_consumption.svg')
+        plt.close()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.plot(mice[i].perc_bout_into_background_s, 'b--')
+        plt.plot(mice[i].perc_bout_into_background_l, 'r--')
+        ax.set_title(f'{mice[i].name} percentage of consumption bout that cross into next background')
+        ax.set_xlabel("session")
+        ax.set_ylabel("%")
+        ax.legend(['short', 'long'])
+        if saving:
+            plt.savefig(f'{mice[i].name} perc_bout_into_background.svg')
         plt.close()
 
         fig, ax = plt.subplots(figsize=(10, 5))
