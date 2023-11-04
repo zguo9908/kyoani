@@ -1,5 +1,7 @@
 import os
-
+from sklearn.neighbors import KernelDensity
+from scipy.signal import find_peaks
+from scipy.stats import norm
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.patches as mpatches
@@ -12,6 +14,32 @@ def set_axis_style(ax, labels):
     ax.set_xticks(np.arange(1, len(labels) + 1), labels=labels)
     ax.set_xlim(0.25, len(labels) + 0.75)
 
+# Define a function to find the modes in a distribution and estimate standard deviations
+def find_modes_and_stds(data):
+    kde = KernelDensity(bandwidth=0.5)  # Adjust the bandwidth as needed
+    kde.fit(data.to_numpy().reshape(-1, 1))  # Convert to a numpy array and reshape
+    x_d = np.linspace(min(data), max(data), 1000)
+    logprob = kde.score_samples(x_d.reshape(-1, 1))
+    density = np.exp(logprob)
+
+    peaks, _ = find_peaks(density)
+
+    modes = []
+    stds = []
+
+    for _ in range(min(2, len(peaks))):  # Consider up to the first 2 peaks
+        if len(peaks) > 0:
+            mode = x_d[peaks[np.argmax(density[peaks])]]
+            density[peaks[np.argmax(density[peaks])]] = 0  # Zero out the peak
+            modes.append(mode)
+
+            # Estimate the standard deviation based on the IQR
+            q1, q3 = np.percentile(data, [25, 75])
+            iqr = q3 - q1
+            std_estimate = iqr / 1.349  # Approximately 1.349 times the IQR
+            stds.append(std_estimate)
+
+    return modes, stds
 
 def rawPlots(mice, task_params, has_block, saving):
     #path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
@@ -250,19 +278,51 @@ def rawPlots(mice, task_params, has_block, saving):
         fig, ax = plt.subplots(figsize=(10, 5))
         # Loop through each day and plot jittered data points
         for session, values in enumerate(mice[i].all_holding_s_list):
-            jittered_session = np.random.normal(session, 0.1, len(values))  # Add jitter to day
-            ax.scatter(jittered_session, values, alpha=0.5, c='blue')
+            jittered_session = np.random.normal(session, 0.1, len(values))
+            ax.scatter(jittered_session, values, alpha=0.1, c='blue')
+
+            # Find the modes and estimate the standard deviations
+            modes, stds = find_modes_and_stds(values)
+            print(f'modes for the current session{modes} and std {stds}')
+
+            for mode, std in zip(modes, stds):
+                if mode is not None:
+                    # Calculate the bell curves for the identified peaks
+                    y = np.linspace(min(values), max(values), 100)
+                    bell_curve = norm.pdf(y, mode, std)
+                    bell_curve /= max(bell_curve)
+                    # Overlay the vertical bell curves on top of the vertically jittered lick times
+                    x = jittered_session[0] + (bell_curve - min(bell_curve)) * 0.5  # Adjust the horizontal position
+                    ax.plot(x, y, linestyle='dotted', c='blue')
+                    ax.fill_betweenx(y, x, jittered_session[0], where=(x > jittered_session[0]),
+                                     color='lightblue', alpha=0.05)
+
+                    ax.hlines(mode, xmin=x[0], xmax=x[-1], color='blue', linestyle='dotted')
 
         for session, values in enumerate(mice[i].all_holding_l_list):
-            jittered_session = np.random.normal(session, 0.1, len(values))  # Add jitter to day
-            ax.scatter(jittered_session, values, alpha=0.5, c='red')
+            jittered_session = np.random.normal(session, 0.1, len(values))
+            ax.scatter(jittered_session, values, alpha=0.1, c='red')
+            # Find the modes and estimate the standard deviations
+            modes, stds = find_modes_and_stds(values)
+
+            for mode, std in zip(modes, stds):
+                if mode is not None:
+                    # Calculate the bell curves for the identified peaks
+                    y = np.linspace(min(values), max(values), 100)
+                    bell_curve = norm.pdf(y, mode, std)
+                    bell_curve /= max(bell_curve)
+                    # Overlay the vertical bell curves on top of the vertically jittered lick times
+                    x = jittered_session[0] + (bell_curve - min(bell_curve)) * 0.5  # Adjust the horizontal position
+                    ax.plot(x, y, linestyle='dotted', c='red')
+                    ax.fill_betweenx(y, x, jittered_session[0], where=(x > jittered_session[0]),
+                                     color='lightcoral', alpha=0.05)
+                    ax.hlines(mode, xmin=x[0], xmax=x[-1], color='red', linestyle='dotted')
 
         ax.set_xlabel('session')
         ax.set_ylabel('time (s)')
-        ax.set_title(f'{mice[i].name} distribution of lick times throughout sessions')
-        ax.legend()
+        ax.set_title('Lick Time Distribution with Bell Curves (Auto Std Dev)')
         if saving:
-            plt.savefig(f'{mice[i].name} lick time distribution.svg')
+            plt.savefig(f'{mice[i].name} Lick Time Distribution with Bell Curves.svg')
         plt.close()
 
 
@@ -353,6 +413,17 @@ def rawPlots(mice, task_params, has_block, saving):
         ax.legend(['short', 'long'])
         if saving:
             plt.savefig(f'{mice[i].name} percent trial restarted.svg')
+        plt.close()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.plot(mice[i].mean_background_length_s, 'b--')
+        plt.plot(mice[i].mean_background_length_l, 'r--')
+        ax.set_title(f'{mice[i].name} mean background length')
+        ax.set_xlabel("session")
+        ax.set_ylabel("time (s)")
+        ax.legend(['short', 'long'])
+        if saving:
+            plt.savefig(f'{mice[i].name} mean background length.svg')
         plt.close()
 
 

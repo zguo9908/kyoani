@@ -4,6 +4,101 @@ import statistics
 
 from session import Session
 
+class ShortProperties:
+    def __init__(self):
+        self.holding_by_block = []
+        self.holding_mean = []
+        self.opt_diff = []
+        self.perc_rewarded = []
+        self.holding = []
+        self.all_holding = []
+        self.all_holding_list = []
+
+        self.holding_std = []
+        self.holding_sem = []
+        self.holding_median = []
+        self.holding_q25 = []
+        self.holding_q75 = []
+
+        self.lick_prob = []
+        self.holding_perf = []
+
+        self.miss_perc = []
+
+        self.reflex_lick_perc = []
+        self.non_reflexive = []
+        self.non_reflexive_mean = []
+        self.non_reflexive_std = []
+
+        self.moving_average = []  # waiting time across all trials smoothed by a window size
+        self.moving_average_var = []
+
+        self.stable = []  # times were performance was stable (mean across a window
+
+        self.bg_restart = []
+
+        self.bg_restart_all = []
+
+        self.bg_restart_licks = []
+        self.all_holding_good = []
+        self.holding_mean_good = []
+        self.opt_diff_good = []
+        self.perc_rewarded_good = []
+        self.prob_at_lick_good = []
+        self.all_holding_index = []
+        self.all_holding_by_session = []
+        self.mean_background_length_from_consumption = []
+        self.mean_background_lick_from_consumption = []
+        self.perc_bout_into_background = []
+        self.mean_background_length = []
+
+class LongProperties:
+    def __init__(self):
+        self.holding_by_block = []
+        self.holding_mean = []
+        self.opt_diff = []
+        self.perc_rewarded = []
+        self.holding = []
+        self.all_holding = []
+        self.all_holding_list = []
+
+        self.holding_std = []
+        self.holding_sem = []
+        self.holding_median = []
+        self.holding_q25 = []
+        self.holding_q75 = []
+
+        self.lick_prob = []
+        self.holding_perf = []
+
+        self.miss_perc = []
+
+        self.reflex_lick_perc = []
+        self.non_reflexive = []
+        self.non_reflexive_mean = []
+        self.non_reflexive_std = []
+
+        self.moving_average = []  # waiting time across all trials smoothed by a window size
+        self.moving_average_var = []
+
+        self.stable = []  # times were performance was stable (mean across a window
+
+        self.bg_restart = []
+
+        self.bg_restart_all = []
+
+        self.bg_restart_licks = []
+        self.all_holding_good = []
+        self.holding_mean_good = []
+        self.opt_diff_good = []
+        self.perc_rewarded_good = []
+        self.prob_at_lick_good = []
+        self.all_holding_index = []
+        self.all_holding_by_session = []
+        self.mean_background_length_from_consumption = []
+        self.mean_background_lick_from_consumption = []
+        self.perc_bout_into_background = []
+        self.mean_background_length = []
 
 class Animal:
     def __init__(self, name, task_params):
@@ -13,6 +108,10 @@ class Animal:
         self.name = name
         self.task_params = task_params
         self.sessions = []
+
+        self.short_properties = ShortProperties()
+        self.long_properties = LongProperties()
+
         # mean of holding during blocks or sessions of a timescape type
         self.holding_s_mean = []
         self.holding_l_mean = []
@@ -116,6 +215,9 @@ class Animal:
         self.mean_background_length_from_consumption_l = []
         self.mean_background_lick_from_consumption_l = []
         self.perc_bout_into_background_l = []
+        self.mean_background_length_s = []
+        self.mean_background_length_l = []
+
     def allSession(self, path, has_block):
         self.session_num = len(self.sessions)
         #print(self.session_num)

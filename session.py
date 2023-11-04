@@ -92,13 +92,12 @@ def getConsumptionStats(all_df, bout_interval, min_lick_count_consumption):
     else:
         print("No 'in_consumption' bouts found.")
     # Add the calculated values to the lick_bouts DataFrame
-    print(f'consumption lengths {consumption_lengths}')
-    print(f'lick length in the background during bouts {background_lengths}')
-    print(f'lick counts in the background during bouts {lick_counts_background}')
-
+    # print(f'consumption lengths {consumption_lengths}')
+    # print(f'lick length in the background during bouts {background_lengths}')
+    # print(f'lick counts in the background during bouts {lick_counts_background}')
     mean_consumption_length = mean(consumption_lengths) if len(consumption_lengths) >0 else np.nan
     mean_consumption_licks = mean(lick_counts_consumption) if len(lick_counts_consumption)>0 else np.nan
-    mean_background_length = mean(background_lengths) if len(background_lengths)>0 else np.nan
+    mean_next_background_length = mean(background_lengths) if len(background_lengths)>0 else np.nan
     mean_background_licks = mean(lick_counts_background) if len(lick_counts_background)>0 else np.nan
     # Display the lick bouts and associated metrics
     # lick_bouts['consumption_length'] = consumption_lengths
@@ -109,7 +108,7 @@ def getConsumptionStats(all_df, bout_interval, min_lick_count_consumption):
     # print(lick_bouts)
 
     return consumption_lengths, background_lengths, lick_counts_consumption, lick_counts_background, \
-           mean_consumption_length, mean_consumption_licks, mean_background_length, mean_background_licks,\
+           mean_consumption_length, mean_consumption_licks, mean_next_background_length, mean_background_licks,\
            perc_bout_into_background
 
 def getMissedTrials(df, trial_num):
@@ -148,12 +147,39 @@ def getBackgroundLicks(df, trial_num):
     good_trials = df[~df['session_trial_num'].isin(exclude_values)]
     good_trials_num = len(good_trials.drop_duplicates(subset=['session_trial_num']))
     trials_good = good_trials.drop_duplicates(subset=['session_trial_num'])
-    # print("number of good trials: ", len(good_trials))
-    # good_trials = blk_cp[exclude_condition].drop_duplicates(subset=['session_trial_num'])
 
-    # print(len(good_trials))
-    # print(len(trials_lick_at_bg))
-    return perc_repeat, trials_lick_at_bg, trials_good, good_trials_num, average_repeats
+    # Initialize variables to store background state durations
+    background_durations = []
+    # Initialize variables to track the start time and duration of the current background chunk
+    current_background_start_time = None
+    current_background_duration = 0
+    # Iterate through the DataFrame
+    for index, row in df.iterrows():
+        if row['state'] == 'in_background':
+            # If this is the start of a new background chunk, record the start time
+            if current_background_start_time is None:
+                current_background_start_time = row['session_time']
+        elif row['state'] == 'in_wait':
+            # If this is the end of a background chunk (followed by in_wait), calculate the duration
+            if current_background_start_time is not None:
+                current_background_duration = row['session_time'] - current_background_start_time
+                background_durations.append(current_background_duration)
+                # Reset the tracking variables for the next chunk
+                current_background_start_time = None
+                current_background_duration = 0
+
+    # Check if any background state chunks were found
+    if background_durations:
+        # Calculate the mean duration of background state chunks
+        mean_background_length = sum(background_durations) / len(background_durations)
+        # print("Background state durations (in seconds):")
+        # for duration in background_durations:
+        #     print(duration)
+        print(f"Mean background state duration: {mean_background_length} seconds")
+    else:
+        print("No background state chunks found.")
+
+    return perc_repeat, trials_lick_at_bg, trials_good, good_trials_num, average_repeats, mean_background_length
 
 def getLickBoutsIntoBg(df, interval):
     licks = df.loc[df['key'] == 'lick']
@@ -267,12 +293,12 @@ class Session:
         licks = curr_licks_during_wait.curr_wait_time
         lick_mean, mean_lick_diff = self.getLickStats(licks, curr_opt_wait)
         consumption_lengths, background_lengths, lick_counts_consumption, lick_counts_background, \
-        mean_consumption_length, mean_consumption_licks, mean_background_length, mean_background_licks, \
+        mean_consumption_length, mean_consumption_licks, mean_next_background_length, mean_background_licks, \
         perc_bout_into_background = getConsumptionStats(df, self.lickbout, 1)
 
         return blk_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
                mean_lick_diff, perc_rewarded_perf,  mean_consumption_length, mean_consumption_licks, \
-               mean_background_length, mean_background_licks, perc_bout_into_background
+               mean_next_background_length, mean_background_licks, perc_bout_into_background
 
     def parseSessionStats(self):
         session_data = pd.read_csv(self.file_path, skiprows=3)
@@ -305,19 +331,19 @@ class Session:
                 blk_cp = curr_blk.copy()
                 blk_cp['next_state'] = blk_cp['state'].shift(-1)
 
-                blk_bg_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats = \
+                blk_bg_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats, mean_background_length = \
                     getBackgroundLicks(blk_cp, blk_trial_num)
                 # print(blk_trial_num == good_trials_num + len(trials_lick_at_bg))
 
                 blk_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
                 mean_lick_diff, perc_rewarded_perf, mean_consumption_length, mean_consumption_licks, \
-                mean_background_length, mean_background_licks,perc_bout_into_background = \
+                mean_next_background_length, mean_background_licks,perc_bout_into_background = \
                                                                     self.processSelectedTrials(blk_trial_num, blk_cp,
                                                                                 curr_opt_wait, timescape_type)
 
                 blk_missed_perc_good, miss_trials_good, mean_prob_at_lick_good, licks_good, lick_mean_good, \
                 mean_lick_diff_good, perc_rewarded_perf_good, mean_consumption_length_good, mean_consumption_licks_good, \
-                mean_background_length_good, mean_background_licks_good, perc_bout_into_background_good =\
+                mean_next_background_length_good, mean_background_licks_good, perc_bout_into_background_good =\
                                                                     self.processSelectedTrials(good_trials_num,
                                                                          trials_good, curr_opt_wait, timescape_type)
 
@@ -379,20 +405,20 @@ class Session:
             session_trial_num = max(session_data_cp.session_trial_num) - min(session_data_cp.session_trial_num) + 1
             # session_missed_perc, miss_trials = getMissedTrials(session_data_cp, session_trial_num)
 
-            session_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats = \
+            session_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats, mean_background_length = \
                 getBackgroundLicks(session_data_cp, session_trial_num)
 
             session_mean_reward_time = int(session_data.mean_reward_time.iloc[0])
             curr_opt_wait, timescape_type = self.getTimescapeType(session_mean_reward_time)
 
             session_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
-            mean_lick_diff, perc_rewarded_perf, mean_consumption_length, mean_consumption_licks, mean_background_length, \
+            mean_lick_diff, perc_rewarded_perf, mean_consumption_length, mean_consumption_licks, mean_next_background_length, \
             mean_background_licks, perc_bout_into_background = self.processSelectedTrials( session_trial_num, session_data_cp,
                                                                             curr_opt_wait, timescape_type)
 
             session_missed_perc_good, miss_trials_good, mean_prob_at_lick_good, licks_good, lick_mean_good, \
             mean_lick_diff_good, perc_rewarded_perf_good, mean_consumption_length_good, mean_consumption_licks_good, \
-            mean_background_length_good, mean_background_licks_good, perc_bout_into_background_good = \
+            mean_next_background_length_good, mean_background_licks_good, perc_bout_into_background_good = \
                                                         self.processSelectedTrials(good_trials_num, trials_good, curr_opt_wait, timescape_type)
             self.animal.mean_consumption_length.append(mean_consumption_length)
             self.animal.mean_consumption_licks.append(mean_consumption_licks)
@@ -402,7 +428,8 @@ class Session:
                 self.animal.all_holding_s.extend(licks)
                 self.animal.all_holding_s_list.append(licks)
                 self.animal.all_holding_s_index.append(len(self.animal.all_holding_s))
-                self.animal.mean_background_length_from_consumption_s.append(mean_background_length)
+                self.animal.mean_background_length_s.append(mean_background_length)
+                self.animal.mean_background_length_from_consumption_s.append(mean_next_background_length)
                 self.animal.mean_background_lick_from_consumption_s.append(mean_background_licks)
                 self.animal.perc_bout_into_background_s.append(perc_bout_into_background_good)
                 self.animal.reflex_lick_perc_s.append(len(licks[licks <= self.reflex_length])/len(licks))
@@ -434,7 +461,8 @@ class Session:
                 self.animal.all_holding_l.extend(licks)
                 self.animal.all_holding_l_list.append(licks)
                 self.animal.all_holding_l_index.append(len(self.animal.all_holding_l))
-                self.animal.mean_background_length_from_consumption_l.append(mean_background_length)
+                self.animal.mean_background_length_l.append(mean_background_length)
+                self.animal.mean_background_length_from_consumption_l.append(mean_next_background_length)
                 self.animal.mean_background_lick_from_consumption_l.append(mean_background_licks)
                 self.animal.perc_bout_into_background_l.append(perc_bout_into_background_good)
                 self.animal.reflex_lick_perc_l.append(len(licks[licks <= self.reflex_length]) / len(licks))

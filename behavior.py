@@ -56,6 +56,9 @@ class BehaviorAnalysis:
         self.short_bg_repeat_times = []
         self.all_licks_by_session_l = []
         self.all_licks_by_session_s = []
+
+        self.bg_length_s = []
+        self.bg_length_l = []
     def getStableTimes(self, mouse):
         for j in range(len(mouse.moving_average_s_var)):
             if not math.isnan(mouse.moving_average_s_var[j]) and mouse.moving_average_s_var[j] < 1:
@@ -117,6 +120,7 @@ class BehaviorAnalysis:
                 self.long_impulsive_perc.append(self.mice[i].reflex_lick_perc_l)
                 self.all_licks_by_session_l.append(self.mice[i].all_holding_l_by_session)
                 self.long_bg_repeat_times.append(self.mice[i].bg_restart_licks_l)
+                self.bg_length_l.append(self.mice[i].mean_background_length_l)
             else:
                 self.short_mice_list.append(mouse)
                 self.short_session_mean.append(self.mice[i].holding_s_mean)
@@ -126,6 +130,7 @@ class BehaviorAnalysis:
                 self.short_impulsive_perc.append(self.mice[i].reflex_lick_perc_s)
                 self.all_licks_by_session_s.append(self.mice[i].all_holding_s_by_session)
                 self.short_bg_repeat_times.append(self.mice[i].bg_restart_licks_s)
+                self.bg_length_s.append(self.mice[i].mean_background_length_s)
 
         fig, ax = plt.subplots()
         # Iterate through each sublist and plot it as a line
@@ -144,6 +149,39 @@ class BehaviorAnalysis:
         ax.set_ylabel('mean waiting time')
         ax.legend()
         plt.savefig('all animal waiting.svg')
+
+        # bg repeats times
+        long_bg_length_mean, long_bg_length_std, padded_long = calculate_padded_averages_and_std(
+            self.bg_length_l)
+        short_bg_repeat_length_mean, short_bg_length_std, padded_short = calculate_padded_averages_and_std(
+            self.bg_length_s)
+
+        fig, ax = plt.subplots()
+        # Plot the line graph for long sessions
+        x = list(range(1, len(long_bg_length_mean) + 1))
+        y = long_bg_length_mean
+        ax.plot(x, y, marker='o', label='Average_long', color='red')
+
+        # Shade the area around the line plot to represent the standard deviation for long sessions
+        ax.fill_between(x, [mean - std for mean, std in zip(y, long_bg_length_std)],
+                        [mean + std for mean, std in zip(y, long_bg_length_std)], alpha=0.5,
+                        label='Standard Deviation_long',
+                        color='#FFAAAA')
+        # Plot the line graph for short sessions
+        x = list(range(1, len(short_bg_repeat_length_mean) + 1))
+        y = short_bg_repeat_length_mean
+        ax.plot(x, y, marker='o', label='Average_short', color='blue')
+
+        # Shade the area around the line plot to represent the standard deviation for short sessions
+        ax.fill_between(x, [mean - std for mean, std in zip(y, short_bg_length_std)],
+                        [mean + std for mean, std in zip(y, short_bg_length_std)], alpha=0.5,
+                        label='Standard Deviation_short',
+                        color='lightblue')
+        ax.set_xlabel('session #')
+        ax.set_ylabel('time(s)')
+        ax.legend()
+        plt.savefig('background lengths.svg')
+        plt.close()
 
         # bg repeats times
         long_bg_repeat_time_averages, long_bg_repeat_time_std, padded_long = calculate_padded_averages_and_std(
@@ -352,7 +390,7 @@ class BehaviorAnalysis:
         max_sessions = max(len(session_data) for session_data in combined_data)
         max_sessions = max(max(len(data) for data in cohort) for cohort in combined_data)
         print(f'number of max session {max_sessions}')
-        fig, axes = plt.subplots(max_sessions, 1, figsize=(4,80))
+        fig, axes = plt.subplots(max_sessions, 1, figsize=(4,100))
 
         for session in range(max_sessions):
             ax = axes[session]
@@ -368,11 +406,11 @@ class BehaviorAnalysis:
                 if cohort == 'cohort_s':
                     sns.kdeplot(licking_data, label='Short Cohort_kde', color='blue', ax=ax, common_norm=False, bw_adjust=.4)
                     sns.histplot(licking_data, kde=False, label='Short Cohort_hist', color='lightblue', stat="density",
-                                 ax=ax, binwidth=0.1)
+                                 ax=ax, bins=10)
                 else:
                     sns.kdeplot(licking_data, label='Long Cohort_kde', color='red', ax=ax, common_norm=False, bw_adjust=.4)
                     sns.histplot(licking_data, kde=False, label='Long Cohort_hist', color='lightcoral', stat="density",
-                                 ax=ax, binwidth=0.1)
+                                 ax=ax, bins = 10)
 
             ax.set_title(f'Session {session + 1}')
             ax.set_ylabel('Density')
