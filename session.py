@@ -255,7 +255,7 @@ class Session:
         self.bg_repeats_s = []
         self.bg_repeats_l = []
 
-        self.animal.holding_diff = []
+        # self.animal.holding_diff = []
 
         self.animal_all_holding_s_good = []
         self.holding_s_good = []
@@ -360,7 +360,9 @@ class Session:
                 self.opt_diff.append(mean_lick_diff)
 
                 if self.block_type[k - 1] == 's':
+                    self.animal.short_properties.all_holding.extend(licks)
                     self.animal.all_holding_s.extend(licks)
+                    self.animal.short_properties.all_holding_index.append(len(self.animal.all_holding_s))
                     self.animal.all_holding_s_index.append(len(self.animal.all_holding_s))
                     self.holding_s.append(lick_mean) # block mean
                     self.opt_diff_s.append(mean_lick_diff)
@@ -540,9 +542,9 @@ class Session:
                 self.animal.holding_l_mean_good.append(mean(self.holding_l_good))
         else:
             self.animal.holding_l_mean.append(np.nan)
-
-        if not np.isnan(self.animal.holding_l_mean).any() and not np.isnan(self.animal.holding_s_mean).any():
-            self.animal.holding_diff.append(self.animal.holding_s_mean[-1] - self.animal.holding_l_mean[-1])
+        #
+        # if not np.isnan(self.animal.holding_l_mean).any() and not np.isnan(self.animal.holding_s_mean).any():
+        #     self.animal.holding_diff.append(self.animal.holding_s_mean[-1] - self.animal.holding_l_mean[-1])
 
         self.animal.bg_restart_s_all.extend(self.bg_repeats_s)
         self.animal.bg_restart_l_all.extend(self.bg_repeats_l)
