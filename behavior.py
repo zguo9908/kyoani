@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pkg_resources import resource_string
 
+import utils
 from animal import Animal
 from session import Session
 from scipy.stats import ttest_ind
@@ -20,13 +21,14 @@ class BehaviorAnalysis:
             config_data = json.load(json_file)
         return config_data
 
-    def __init__(self, exp_name, optimal_wait, task_type, has_block, task_params):
+    def __init__(self, exp_name, optimal_wait, param_dict, task_type, has_block, task_params):
         self.exp_name = exp_name
         self.exp_config = self.get_exp_config()
         self.animal_assignment = self.exp_config['timescape']
         self.task_type = task_type
         self.task_params = task_params
         self.has_block = has_block
+        self.param_dict = param_dict
         self.optimal_wait = optimal_wait
         if self.has_block:
             self.path = os.path.normpath(r'D:\behavior_data') + "\\" + "blocks" + "\\" + task_params
@@ -345,8 +347,10 @@ class BehaviorAnalysis:
         plt.savefig('consumption times long vs short cohorts.svg')
         plt.close()
 
-        adjusted_long_optimal = long_bg_length_mean[-1] + long_com_averages[-1]
-        adjusted_short_optimal = short_bg_length_mean[-1] + short_com_averages[-1]
+        adjusted_long_optimal = utils.getOptimalTime(self.param_dict['m2'],self.param_dict['p2'],
+                                                     long_bg_length_mean[-1] + long_com_averages[-1])
+        adjusted_short_optimal = utils.getOptimalTime(self.param_dict['m1'],self.param_dict['p1'],
+                                                     short_bg_length_mean[-1] + short_com_averages[-1])
 
         # session plots
         long_session_averages, long_std_session, padded_long = calculate_padded_averages_and_std(self.long_session_mean)
@@ -358,7 +362,7 @@ class BehaviorAnalysis:
         y = long_session_averages
         ax.plot(x, y, marker='o', label='Average_long', color='red')
         ax.axhline(y=self.optimal_wait[1], color='r', linestyle='--', label='Optimal_long')
-        # ax.axhline(y=adjusted_long_optimal, color='lightcoral', linestyle='--', label='adjusted_optimal_long')
+        ax.axhline(y=adjusted_long_optimal, color='lightcoral', linestyle='--', label='adjusted_optimal_long')
 
 
         # Shade the area around the line plot to represent the standard deviation for long sessions
@@ -371,7 +375,7 @@ class BehaviorAnalysis:
         y = short_session_averages
         ax.plot(x, y, marker='o', label='Average_short', color='blue')
         ax.axhline(y=self.optimal_wait[0], color='b', linestyle='--', label='Optimal_short')
-        # ax.axhline(y=adjusted_short_optimal, color='lightblue', linestyle='--', label='adjusted_optimal_short')
+        ax.axhline(y=adjusted_short_optimal, color='lightblue', linestyle='--', label='adjusted_optimal_short')
 
         # Shade the area around the line plot to represent the standard deviation for short sessions
         ax.fill_between(x, [mean - std for mean, std in zip(y, short_std_session)],
@@ -402,7 +406,7 @@ class BehaviorAnalysis:
         y = long_averages
         ax.plot(x, y, marker='o', label='Average_long', color='red')
         ax.axhline(y=self.optimal_wait[1], color='r', linestyle='--', label='Optimal_l')
-
+        ax.axhline(y=adjusted_long_optimal, color='lightcoral', linestyle='--', label='adjusted_optimal_long')
         # Shade the area around the line plot to represent the standard deviation for long sessions
         ax.fill_between(x, [mean - std for mean, std in zip(y, long_std_deviation)],
                         [mean + std for mean, std in zip(y, long_std_deviation)], alpha=0.5, label='Standard Deviation_long',
@@ -412,6 +416,7 @@ class BehaviorAnalysis:
         y = short_averages
         ax.plot(x, y, marker='o', label='Average_short', color='blue')
         ax.axhline(y=self.optimal_wait[0], color='b', linestyle='--', label='Optimal_s')
+        ax.axhline(y=adjusted_short_optimal, color='lightblue', linestyle='--', label='adjusted_optimal_short')
         # Shade the area around the line plot to represent the standard deviation for short sessions
         ax.fill_between(x, [mean - std for mean, std in zip(y, short_std_deviation)],
                         [mean + std for mean, std in zip(y, short_std_deviation)], alpha=0.5, label='Standard Deviation_short',

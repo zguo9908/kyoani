@@ -137,6 +137,7 @@ def rawPlots(mice, task_params, has_block, saving):
             plt.errorbar(x, mice[i].holding_s_median, yerr=[error_low, error_high], fmt='o', color='blue',
                          label='Short - median', capsize=5, elinewidth=2, barsabove=True, errorevery=1)
             plt.plot(x, mice[i].holding_s_mean, 'bs', label='Short - mean', markersize=8, markerfacecolor='none')
+            plt.plot(x, mice[i].holding_s_mean, 'bs', label='Short - mean', markersize=8, markerfacecolor='none')
         if len(mice[i].holding_l_std) > 0:
             x = range(1, len(mice[i].holding_l_mean) + 1)
             error_low = [max(0, float(median) - float(q25)) for median, q25 in
@@ -146,6 +147,7 @@ def rawPlots(mice, task_params, has_block, saving):
 
             plt.errorbar(x, mice[i].holding_l_median, yerr=[error_low, error_high], fmt='o', color='red',
                          label='Long - median', capsize=5, elinewidth=2, barsabove=True, errorevery=1)
+            plt.plot(x, mice[i].holding_l_mean, 'ro', label='Long - median', markersize=8, markerfacecolor='none')
             plt.plot(x, mice[i].holding_l_mean, 'ro', label='Long - mean', markersize=8, markerfacecolor='none')
 
         ax.set_title(f'{mice[i].name} holding times')
