@@ -19,16 +19,5 @@
                   {"default":["short","s"], "change":["long","l"]},
                 "ZG029":
                   {"default":["short","s"], "change":["long","l"]}
-  },
-  "stage": {"ZG020":["default"],
-             "ZG021":["default"],
-             "ZG022":["default"],
-             "ZG023":["default"],
-             "ZG024":["default"],
-             "ZG025":["default"],
-             "ZG026":["default"],
-             "ZG027":["default"],
-             "ZG028":["default"],
-             "ZG029":["default"]
   }
 }

@@ -242,6 +242,11 @@ class Session:
         self.prob_at_lick_s = []
         self.prob_at_lick_l = []
 
+        self.q25_s = []
+        self.q75_s = []
+        self.q25_l = []
+        self.q75_l = []
+
         # only for sessions with blocks
         self.blk_start_var = []  # variance of waiting time for the last 10 trials before block switch
         self.blk_end_var = []  # variance of waiting time for the first 10 trials after block switch
@@ -275,6 +280,9 @@ class Session:
         # number of bg repeats
         self.bg_repeats_s_licks = []
         self.bg_repeats_l_licks = []
+
+        self.miss_perc_s = []
+        self.miss_perc_l = []
 
 
     def processSelectedTrials(self, trial_num, df, curr_opt_wait, timescape_type):
@@ -378,9 +386,9 @@ class Session:
                     self.prob_at_lick_s_good.append(mean_prob_at_lick_good)
                     print(f"s good holding number {len(self.holding_s_good)}")
                     if not math.isnan(blk_missed_perc):
-                        self.animal.miss_perc_s.append(blk_missed_perc)
+                        self.miss_perc_s.append(blk_missed_perc)
                     else:
-                        self.animal.miss_perc_s.append(np.nan)
+                        self.miss_perc_s.append(np.nan)
                 else:
                     self.animal.all_holding_l.extend(licks)
                     self.animal.all_holding_l_index.append(len(self.animal.all_holding_l))
@@ -396,9 +404,9 @@ class Session:
                     self.perc_rewarded_l_good.append(perc_rewarded_perf_good)
                     self.prob_at_lick_l_good.append(mean_prob_at_lick_good)
                     if not math.isnan(blk_missed_perc):
-                        self.animal.miss_perc_l.append(blk_missed_perc)
+                        self.miss_perc_l.append(blk_missed_perc)
                     else:
-                        self.animal.miss_perc_l.append(np.nan)
+                        self.miss_perc_l.append(np.nan)
 
         else:
             session_data_cp = session_data.copy()
@@ -425,6 +433,8 @@ class Session:
             self.animal.mean_consumption_length.append(mean_consumption_length)
             self.animal.mean_consumption_licks.append(mean_consumption_licks)
 
+
+            # all session data for non-block, updates should be done in updates function!
            # print(len(licks_good))
             if timescape_type == 's':
                 self.animal.all_holding_s.extend(licks)
@@ -439,8 +449,8 @@ class Session:
                # print(f'std of current licking is {np.std(licks)}')
                 self.animal.holding_s_std.append(np.std(licks))
                 self.animal.holding_s_sem.append(sem(licks))
-                self.animal.holding_s_q25.append(licks.quantile(0.25))
-                self.animal.holding_s_q75.append(licks.quantile(0.75))
+                self.q25_s.append(licks.quantile(0.25))
+                self.q75_s.append(licks.quantile(0.75))
 
                 self.holding_s.append(lick_mean)
                 self.opt_diff_s.append(mean_lick_diff)
@@ -456,9 +466,9 @@ class Session:
                 self.prob_at_lick_s_good.append(mean_prob_at_lick_good)
                 # print(f"s good holding number {len(self.holding_s_good)}")
                 if not math.isnan(session_missed_perc):
-                    self.animal.miss_perc_s.append(session_missed_perc)
+                    self.miss_perc_s.append(session_missed_perc)
                 else:
-                    self.animal.miss_perc_s.append(np.nan)
+                    self.miss_perc_s.append(np.nan)
             else:
                 self.animal.all_holding_l.extend(licks)
                 self.animal.all_holding_l_list.append(licks)
@@ -472,8 +482,8 @@ class Session:
                 # print(self.non_reflexive_l)
                 self.animal.holding_l_std.append(np.std(licks))
                 self.animal.holding_l_sem.append(sem(licks))
-                self.animal.holding_l_q25.append(licks.quantile(0.25))
-                self.animal.holding_l_q75.append(licks.quantile(0.75))
+                self.q25_l.append(licks.quantile(0.25))
+                self.q75_l.append(licks.quantile(0.75))
                 self.holding_l.append(lick_mean)
                 self.opt_diff_l.append(mean_lick_diff)
                 self.perc_rewarded_l.append(perc_rewarded_perf)
@@ -487,9 +497,9 @@ class Session:
                 self.prob_at_lick_l_good.append(mean_prob_at_lick_good)
 
                 if not math.isnan(session_missed_perc):
-                    self.animal.miss_perc_l.append(session_missed_perc)
+                    self.miss_perc_l.append(session_missed_perc)
                 else:
-                    self.animal.miss_perc_l.append(np.nan)
+                    self.miss_perc_l.append(np.nan)
     def getTimescapeType(self, mean_reward_time):
         if mean_reward_time == 3:
             opt_wait = self.optimal_wait[1]
@@ -530,6 +540,7 @@ class Session:
                 # print(f"mean good trial licking {self.animal.holding_s_mean_good}")
         else:
             self.animal.holding_s_mean.append(np.nan)
+            self.animal.holding_s_median.append(np.nan)
         if len(self.holding_l) > 0:
             non_nan_values = [x for x in self.holding_l if not math.isnan(x)]
             # Calculate the standard deviation of non-NaN values
@@ -542,12 +553,14 @@ class Session:
                 self.animal.holding_l_mean_good.append(mean(self.holding_l_good))
         else:
             self.animal.holding_l_mean.append(np.nan)
+            self.animal.holding_l_median.append(np.nan)
         #
         # if not np.isnan(self.animal.holding_l_mean).any() and not np.isnan(self.animal.holding_s_mean).any():
         #     self.animal.holding_diff.append(self.animal.holding_s_mean[-1] - self.animal.holding_l_mean[-1])
 
         self.animal.bg_restart_s_all.extend(self.bg_repeats_s)
         self.animal.bg_restart_l_all.extend(self.bg_repeats_l)
+
 
         non_reflexive_s_mean = np.mean(self.non_reflexive_s) if len(self.non_reflexive_s) > 0 else np.nan
         non_reflexive_l_mean = np.mean(self.non_reflexive_l) if len(self.non_reflexive_l) > 0 else np.nan
@@ -558,11 +571,19 @@ class Session:
         self.animal.non_reflexive_l_mean.append(non_reflexive_l_mean)
         self.animal.non_reflexive_l_std.append(non_reflexive_l_std)
 
+        self.animal.holding_s_q25.append(np.mean(self.q25_s) if len(self.q25_s) > 0 else np.nan)
+        self.animal.holding_l_q25.append(np.mean(self.q25_l) if len(self.q25_l) > 0 else np.nan)
+        self.animal.holding_s_q75.append(np.mean(self.q75_s) if len(self.q75_s) > 0 else np.nan)
+        self.animal.holding_l_q75.append(np.mean(self.q75_l) if len(self.q75_l) > 0 else np.nan)
+
+
         self.animal.bg_restart_s.append(mean(self.bg_repeats_s) if len(self.bg_repeats_s) > 0 else np.nan)
         self.animal.bg_restart_l.append(mean(self.bg_repeats_l) if len(self.bg_repeats_l) > 0 else np.nan)
         self.animal.bg_restart_licks_s.append(mean(self.bg_repeats_s_licks) if len(self.bg_repeats_s_licks) >0 else np.nan)
         self.animal.bg_restart_licks_l.append(mean(self.bg_repeats_l_licks) if len(self.bg_repeats_l_licks) >0 else np.nan)
 
+        self.animal.miss_perc_s.append(mean(self.miss_perc_s) if len(self.miss_perc_s) > 0 else np.nan)
+        self.animal.miss_perc_l.append(mean(self.miss_perc_l) if len(self.miss_perc_l) > 0 else np.nan)
 
         self.animal.opt_diff_s.append(mean(self.opt_diff_s) if len(self.opt_diff_s) > 0 else np.nan)
         self.animal.opt_diff_s_good.append(mean(self.opt_diff_s_good) if len(self.opt_diff_s) > 0 else np.nan)

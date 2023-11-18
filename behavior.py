@@ -63,37 +63,54 @@ class BehaviorAnalysis:
 
         self.bg_length_s = []
         self.bg_length_l = []
-    def getStableTimes(self, mouse):
-        for j in range(len(mouse.moving_average_s_var)):
-            if not math.isnan(mouse.moving_average_s_var[j]) and mouse.moving_average_s_var[j] < 1:
-                mouse.stable_s.append(mouse.moving_average_s[j])
-
-        for k in range(len(mouse.moving_average_l_var)):
-            if not math.isnan(mouse.moving_average_l_var[k]) and mouse.moving_average_l_var[k] < 1:
-                mouse.stable_l.append(mouse.moving_average_l[k])
-        print(len(mouse.stable_l))
+    # def getStableTimes(self, mouse):
+    #     for j in range(len(mouse.moving_average_s_var)):
+    #         if not math.isnan(mouse.moving_average_s_var[j]) and mouse.moving_average_s_var[j] < 1:
+    #             mouse.stable_s.append(mouse.moving_average_s[j])
+    #
+    #     for k in range(len(mouse.moving_average_l_var)):
+    #         if not math.isnan(mouse.moving_average_l_var[k]) and mouse.moving_average_l_var[k] < 1:
+    #             mouse.stable_l.append(mouse.moving_average_l[k])
+    #     print(len(mouse.stable_l))
 
     def allAnimal(self, animals):
         animal_num = len(animals)
         for i in range(animal_num):
             animal = animals[i]
-            curr_animal = Animal(animal, self.task_params)
-            self.mice.append(curr_animal)
-            curr_path = self.path + "\\" + animal
-            os.chdir(curr_path)
-            session_list = os.listdir()
-            # filter all the items that are regular
-            sessions = [session for session in session_list if self.task_type in session]
-            curr_animal.sessions = sessions
+            curr_default = self.animal_assignment[animal]['default'][0]
+            curr_change = self.animal_assignment[animal]['change'][0]
 
-            curr_animal.allSession(curr_path, self.has_block)
-            print(f'processing all sessions for mice {animal}')
+            curr_animal = Animal(animal, curr_default, curr_change, self.task_params)
+            self.mice.append(curr_animal)
+            default_path = self.path + "\\" + animal + "\\" + 'default'
+            print(f'Trying to change to directory: {default_path}')
+            os.chdir(default_path)
+            print(f'Current working directory: {os.getcwd()}')
+            default_session_list = os.listdir()
+            # filter all the items that are regular
+            default_sessions = [session for session in default_session_list if self.task_type in session]
+            curr_animal.default_sessions = default_sessions
+            curr_animal.reverse_index = len(default_sessions)
+            print(curr_animal.reverse_index)
+            curr_animal.allSession(default_path, 'default', self.has_block)
+            print(f'processing all default sessions for mice {animal}')
+
+            change_path = self.path + "\\" + animal + "\\" + 'change'
+            os.chdir(change_path)
+            print(f'Current working directory: {os.getcwd()}')
+            change_session_list = os.listdir()
+            # filter all the items that are regular
+            change_sessions = [session for session in change_session_list if self.task_type in session]
+            curr_animal.change_sessions = change_sessions
+
+            curr_animal.allSession(change_path, 'change', self.has_block)
+            print(f'processing all change sessions for mice {animal}')
             curr_animal.getMovingAvg(window_size=8)
             curr_animal.getBlockWaiting()
-            self.getStableTimes(curr_animal)
+            # self.getStableTimes(curr_animal)
             # self.mice[i].stable_s = [s for s in self.mice[i].moving_average_s if s > self.optimal_wait[0]]
             # self.mice[i].stable_l = [l for l in self.mice[i].moving_average_l if l > self.optimal_wait[1]]
-            print(len(curr_animal.stable_s))
+            # print(len(curr_animal.stable_s))
         return self.mice
 
 

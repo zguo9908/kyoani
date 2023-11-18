@@ -101,13 +101,19 @@ class LongProperties:
         self.mean_background_length = []
 
 class Animal:
-    def __init__(self, name, task_params):
+    def __init__(self, name, default, change, task_params):
         self.holding_l_by_block = []
         self.holding_s_by_block = []
         self.session_num = None
+        self.default_session_num = None
+        self.change_session_num = None
         self.name = name
+        self.default = default
+        self.change = change
         self.task_params = task_params
         self.sessions = []
+        self.default_sessions = []
+        self.change_sessions = []
 
         self.short_properties = ShortProperties()
         self.long_properties = LongProperties()
@@ -218,20 +224,35 @@ class Animal:
         self.mean_background_length_s = []
         self.mean_background_length_l = []
 
-    def allSession(self, path, has_block):
-        self.session_num = len(self.sessions)
-        #print(self.session_num)
-        for j in range(self.session_num):
-            curr_session_path = path + '\\' + self.sessions[j]
+        self.reverse_index = -1
+
+    def allSession(self, path, stage, has_block):
+        os.chdir(path)
+        if stage == 'default':
+            self.default_session_num = len(self.default_sessions)
+            print(f'number of sessions processing {self.default_session_num}')
+            curr_session_num = self.default_session_num
+            curr_sessions = self.default_sessions
+        else:
+            self.change_session_num = len(self.change_sessions)
+            print(f'number of sessions processing {self.default_session_num}')
+            curr_session_num = self.change_session_num
+            curr_sessions = self.change_sessions
+
+
+        for j in range(curr_session_num):
+            curr_session_path = path + '\\' + curr_sessions[j]
             os.chdir(curr_session_path)
             file_path = curr_session_path + '\\' + os.listdir()[0]
             curr_session = Session(self, file_path, has_block, self.task_params)
             curr_session.parseSessionStats()
             curr_session.updateSessionStats()
-            #self.session_index.append(self.all)
+            # self.session_index.append(self.all)
             self.session_list.append(curr_session)
-        # print(f'std for l session {self.holding_l_std}')
-        # print(self.holding_s_std)
+
+    # print(f'std for l session {self.holding_l_std}')
+    # print(self.holding_s_std)
+
 
     # this function will take moving average across windows of trials
     def getMovingAvg(self, window_size):
