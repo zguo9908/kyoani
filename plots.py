@@ -46,11 +46,11 @@ def find_modes_and_stds(data):
 
 def background_patches(default, mouse, ax, x):
     if default == 'long':
-        ax.axvspan(min(x), mouse.reverse_index, color='red', alpha=0.1)  # Red patch before x_split
-        ax.axvspan(mouse.reverse_index, max(x), color='blue', alpha=0.1)
+        ax.axvspan(min(x), mouse.reverse_index + 0.5, color='red', alpha=0.1)  # Red patch before x_split
+        ax.axvspan(mouse.reverse_index + 0.5, max(x), color='blue', alpha=0.1)
     else:
-        ax.axvspan(min(x), mouse.reverse_index, color='blue', alpha=0.1)  # Red patch before x_split
-        ax.axvspan(mouse.reverse_index, max(x), color='red', alpha=0.1)
+        ax.axvspan(min(x), mouse.reverse_index + 0.5, color='blue', alpha=0.1)  # Red patch before x_split
+        ax.axvspan(mouse.reverse_index + 0.5, max(x), color='red', alpha=0.1)
 
 def safe_extract(lst, source_label):
     return [x[0] if isinstance(x, tuple) and len(x) > 1 and x[1] == source_label else None for x in lst]
@@ -141,7 +141,7 @@ def plotTrialSplit(mouse, default):
     plt.savefig(f'{mouse.name}_perc_diff_trials.svg')
     plt.close()
 
-def plotHoldingWithError(mouse, default):
+def plotHoldingWithError(mouse, default, optimal_wait):
     fig, ax = plt.subplots(figsize=(10, 5))
     if mouse.default_session_num > 0 and mouse.change_session_num > 0:
         list_pairs = [(mouse.holding_s_median, mouse.holding_l_median),
@@ -177,6 +177,8 @@ def plotHoldingWithError(mouse, default):
         plt.plot(x, values_l_median, 'rs', label='Long - median', markersize=8, markerfacecolor='none')
         plt.plot(x, values_s_mean, 'bo', label='Short - mean', markersize=8, markerfacecolor='none')
         plt.plot(x, values_l_mean, 'ro', label='Long - mean', markersize=8, markerfacecolor='none')
+        ax.axhline(y=optimal_wait[1], color='r', linestyle='--', label='Optimal_long')
+        ax.axhline(y=optimal_wait[0], color='b', linestyle='--', label='Optimal_Short')
 
         background_patches(default, mouse, ax, x)
     else:
@@ -189,7 +191,7 @@ def plotHoldingWithError(mouse, default):
 
             plt.errorbar(x, mouse.holding_s_median, yerr=[error_low, error_high], fmt='o', color='blue',
                          label='Short - median', capsize=5, elinewidth=2, barsabove=True, errorevery=1)
-            plt.plot(x, mouse.holding_s_median, 'bs', label='Short - mean', markersize=8, markerfacecolor='none')
+            plt.plot(x, mouse.holding_s_median, 'bs', markersize=8, markerfacecolor='none')
             plt.plot(x, mouse.holding_s_mean, 'bo', label='Short - mean', markersize=8, markerfacecolor='none')
         if len(mouse.holding_l_std) > 0:
             x = range(1, sum(1 for x in mouse.holding_s_mean if not math.isnan(x)) + 1)
@@ -200,7 +202,7 @@ def plotHoldingWithError(mouse, default):
 
             plt.errorbar(x, mouse.holding_l_median, yerr=[error_low, error_high], fmt='o', color='red',
                          label='Long - median', capsize=5, elinewidth=2, barsabove=True, errorevery=1)
-            plt.plot(x, mouse.holding_l_median, 'rs', label='Long - median', markersize=8, markerfacecolor='none')
+            plt.plot(x, mouse.holding_l_median, 'rs', markersize=8, markerfacecolor='none')
             plt.plot(x, mouse.holding_l_mean, 'ro', label='Long - mean', markersize=8, markerfacecolor='none')
 
     ax.set_title(f'{mouse.name} holding times')
@@ -290,7 +292,7 @@ def plotPairingLists(slist, llist, default, figuretype):
     ax.set_xticks(x)
 
 
-def rawPlots(mice, task_params, has_block, saving):
+def rawPlots(mice, optimal_wait, task_params, has_block, saving):
     #path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
     if has_block:
         path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
@@ -314,7 +316,7 @@ def rawPlots(mice, task_params, has_block, saving):
         # trial percentages
         plotTrialSplit(mice[i], curr_default)
         # holding time with error bars
-        plotHoldingWithError(mice[i], curr_default)
+        plotHoldingWithError(mice[i], curr_default, optimal_wait)
         # jittered daily distribution
         plotJitteredDist(mice[i], curr_default)
 
@@ -346,22 +348,23 @@ def rawPlots(mice, task_params, has_block, saving):
         plt.savefig(f'{mice[i].name} repeat triggered times.svg')
         plt.close()
 
-
-
         fig, ax = plt.subplots(figsize=(10, 5))
-        plt.plot(mice[i].mean_consumption_length, 'bo')
+        plt.plot(mice[i].mean_consumption_length)
         ax.set_title(f'{mice[i].name} mean consumption length')
         ax.set_xlabel("session")
         ax.set_ylabel("consumption time(s)")
+        x = np.arange(1, len(mice[i].mean_consumption_length) + 1)
+        background_patches(curr_default, mice[i], ax, x)
         plt.savefig(f'{mice[i].name} mean consumption lengths.svg')
         plt.close()
 
-
         fig, ax = plt.subplots(figsize=(10, 5))
-        plt.plot(mice[i].mean_consumption_licks, 'bo')
+        plt.plot(mice[i].mean_consumption_licks)
         ax.set_title(f'{mice[i].name} mean consumption licks')
         ax.set_xlabel("session")
         ax.set_ylabel("consumption licks")
+        x = np.arange(1, len(mice[i].mean_consumption_licks) + 1)
+        background_patches(curr_default, mice[i], ax, x)
         plt.savefig(f'{mice[i].name} mean consumption licks.svg')
         plt.close()
 
@@ -420,19 +423,19 @@ def rawPlots(mice, task_params, has_block, saving):
         fig, ax = plt.subplots(figsize=(30, 5))
         # print(f's sessions lick index {(mice[i].all_holding_s_index)}')
         if curr_default == "long":
-            mice[i].all_holding_s_index = mice[i].all_holding_s_index + mice[i].all_holding_l_index[-1]
-            moving_averafes = [mice[i].moving_average_s,mice[i].moving_average_l]
+            mice[i].all_holding_s_index = [x + mice[i].all_holding_l_index[-1] for x in mice[i].all_holding_s_index]
+            moving_averages = mice[i].moving_average_s + mice[i].moving_average_l
         if curr_default == "short":
-            mice[i].all_holding_l_index = mice[i].all_holding_l_index + mice[i].all_holding_s_index[-1]
-            moving_averafes = [mice[i].moving_average_l,mice[i].moving_average_s]
-        plt.plot(moving_averafes)
+            mice[i].all_holding_l_index = [x + mice[i].all_holding_s_index[-1] for x in mice[i].all_holding_l_index]
+            moving_averages = mice[i].moving_average_l + mice[i].moving_average_s
+        plt.plot(moving_averages)
         for j in range(len(mice[i].all_holding_s_index)):
             plt.axvline(x=mice[i].all_holding_s_index[j], color='b')
         for j in range(len(mice[i].all_holding_l_index)):
             plt.axvline(x=mice[i].all_holding_l_index[j], color='r')
         ax.set_title(f'{mice[i].name} moving avg performance')
         ax.set_xlabel("trial")
-        ax.set_ylabel("holing time(s)")
+        ax.set_ylabel("holding time(s)")
         ax.legend(['short', 'long'])
         plt.axis([0, 15000, 0, 13])
         if saving:

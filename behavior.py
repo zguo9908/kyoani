@@ -130,30 +130,44 @@ class BehaviorAnalysis:
         path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + self.task_params
         os.chdir(path)
         print(f'plotting and saving in {path}')
+        reverse_session = []
         for i in range(len(self.mice)):
             mouse = self.mice[i].name
+            reverse_session.append(self.mice[i].reverse_index)
+            print(f'{mouse} get reversed at {self.mice[i].reverse_index}')
+            list_pairs = [(self.mice[i].holding_l_mean, self.mice[i].holding_s_mean),
+                          (self.mice[i].non_reflexive_l_mean, self.mice[i].non_reflexive_s_mean),
+                          (self.mice[i].bg_restart_l, self.mice[i].bg_restart_s),
+                          (self.mice[i].reflex_lick_perc_l, self.mice[i].reflex_lick_perc_s),
+                          (self.mice[i].bg_restart_licks_l, self.mice[i].bg_restart_licks_s),
+                          (self.mice[i].mean_background_length_l, self.mice[i].mean_background_length_s),
+                          (self.mice[i].miss_perc_l, self.mice[i].miss_perc_s)
+                          ]
             if self.animal_assignment[self.mice[i].name]['default'][0] == "long":
+                merged_lists = [utils.merge_lists_with_sources(list1, list2) for list1, list2 in list_pairs]
                 self.long_mice_list.append(mouse)
-                self.long_session_mean.append(self.mice[i].holding_l_mean)
-                self.long_session_nonimpulsive_mean.append(self.mice[i].non_reflexive_l_mean)
+                self.long_session_mean.append([x[0] for x in merged_lists[0]])
+                self.long_session_nonimpulsive_mean.append([x[0] for x in merged_lists[1]])
                 self.long_consumption_length.append(self.mice[i].mean_consumption_length)
-                self.long_bg_repeat.append(self.mice[i].bg_restart_l)
-                self.long_impulsive_perc.append(self.mice[i].reflex_lick_perc_l)
-                self.all_licks_by_session_l.append(self.mice[i].all_holding_l_by_session)
-                self.long_bg_repeat_times.append(self.mice[i].bg_restart_licks_l)
-                self.bg_length_l.append(self.mice[i].mean_background_length_l)
-                self.long_missing_perc.append(self.mice[i].miss_perc_l)
+                self.long_bg_repeat.append([x[0] for x in merged_lists[2]])
+                self.long_impulsive_perc.append([x[0] for x in merged_lists[3]])
+                self.all_licks_by_session_l.append(self.mice[i].all_holding_l_by_session + self.mice[i].all_holding_s_by_session)
+                self.long_bg_repeat_times.append([x[0] for x in merged_lists[4]])
+                self.bg_length_l.append([x[0] for x in merged_lists[5]])
+                self.long_missing_perc.append([x[0] for x in merged_lists[6]])
             else:
+                merged_lists = [utils.merge_lists_with_sources(list1, list2) for list2, list1 in list_pairs]
                 self.short_mice_list.append(mouse)
-                self.short_session_mean.append(self.mice[i].holding_s_mean)
-                self.short_session_nonimpulsive_mean.append(self.mice[i].non_reflexive_s_mean)
+                self.short_session_mean.append([x[0] for x in merged_lists[0]])
+                self.short_session_nonimpulsive_mean.append([x[0] for x in merged_lists[1]])
                 self.short_consumption_length.append(self.mice[i].mean_consumption_length)
-                self.short_bg_repeat.append(self.mice[i].bg_restart_s)
-                self.short_impulsive_perc.append(self.mice[i].reflex_lick_perc_s)
-                self.all_licks_by_session_s.append(self.mice[i].all_holding_s_by_session)
-                self.short_bg_repeat_times.append(self.mice[i].bg_restart_licks_s)
-                self.bg_length_s.append(self.mice[i].mean_background_length_s)
-                self.short_missing_perc.append(self.mice[i].miss_perc_s)
+                self.short_bg_repeat.append([x[0] for x in merged_lists[2]])
+                self.short_impulsive_perc.append([x[0] for x in merged_lists[3]])
+                self.all_licks_by_session_s.append(self.mice[i].all_holding_s_by_session + self.mice[i].all_holding_l_by_session)
+                self.short_bg_repeat_times.append([x[0] for x in merged_lists[4]])
+                self.bg_length_s.append([x[0] for x in merged_lists[5]])
+                self.short_missing_perc.append([x[0] for x in merged_lists[6]])
+
         fig, ax = plt.subplots()
         # Iterate through each sublist and plot it as a line
         for mice, animal_sessions in zip(self.long_mice_list, self.long_session_mean):
@@ -161,6 +175,7 @@ class BehaviorAnalysis:
             x = list(range(1, len(animal_sessions) + 1))  # Generate x values (1, 2, 3, ...)
             y = animal_sessions
             ax.plot(x, y, marker='o', label=mice)
+
         for mice, animal_sessions in zip(self.short_mice_list, self.short_session_mean):
            # print(animal_sessions)
             x = list(range(1, len(animal_sessions) + 1))  # Generate x values (1, 2, 3, ...)
@@ -173,6 +188,7 @@ class BehaviorAnalysis:
         plt.savefig('all animal waiting.svg')
 
         # bg repeats times
+        print(self.long_missing_perc)
         long_miss_perc_mean, long_miss_perc_std, padded_long = calculate_padded_averages_and_std(
             self.long_missing_perc)
         short_miss_perc_mean, short_miss_perc_std, padded_short = calculate_padded_averages_and_std(
@@ -500,6 +516,7 @@ class BehaviorAnalysis:
 
 
 def calculate_padded_averages_and_std(data):
+    print(data)
     max_length = max(len(sublist) for sublist in data)
     averages = [sum(sublist) / len(sublist) if len(sublist) > 0 else 0 for sublist in data]
     padded_data = [
