@@ -101,7 +101,7 @@ class LongProperties:
         self.mean_background_length = []
 
 class Animal:
-    def __init__(self, name, default, change, task_params):
+    def __init__(self, name, default, change, task_params, optimal_wait):
         self.holding_l_by_block = []
         self.holding_s_by_block = []
         self.session_num = None
@@ -111,6 +111,7 @@ class Animal:
         self.default = default
         self.change = change
         self.task_params = task_params
+        self.optimal_wait = optimal_wait
         self.sessions = []
         self.default_sessions = []
         self.change_sessions = []
@@ -244,7 +245,7 @@ class Animal:
             curr_session_path = path + '\\' + curr_sessions[j]
             os.chdir(curr_session_path)
             file_path = curr_session_path + '\\' + os.listdir()[0]
-            curr_session = Session(self, file_path, has_block, self.task_params)
+            curr_session = Session(self, file_path, has_block, self.task_params, self.optimal_wait)
             curr_session.parseSessionStats()
             curr_session.updateSessionStats()
             # self.session_index.append(self.all)

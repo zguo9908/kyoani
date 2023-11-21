@@ -212,18 +212,19 @@ def getLickBoutsIntoBg(df, interval):
 
 
 class Session:
-    def __init__(self, animal, file_path, has_block, task_params):
+    def __init__(self, animal, file_path, has_block, task_params, optimal_wait):
         # within session lists
 
         self.animal = animal
         self.file_path = file_path
         self.has_block = has_block
         self.task_params = task_params
+        self.optimal_wait = optimal_wait
         self.lickbout = 0.3
-        if task_params == "curr_params":
-            self.optimal_wait = [1.74, 3.45]
-        elif task_params == "old_params":
-            self.optimal_wait = [1.52, 2.93]
+        # if task_params == "curr_params":
+        #     self.optimal_wait = [1.74, 3.45]
+        # elif task_params == "old_params":
+        #     self.optimal_wait = [1.52, 2.93]
 
         self.block_type = []
         self.valid_block_type = []
@@ -256,6 +257,8 @@ class Session:
 
         self.session_reward_rate = []
         self.session_holding_times = []
+        self.reflex_lick_perc_l = []
+        self.reflex_lick_perc_s = []
 
         self.bg_repeats_s = []
         self.bg_repeats_l = []
@@ -284,6 +287,13 @@ class Session:
         self.miss_perc_s = []
         self.miss_perc_l = []
 
+        self.mean_background_length_s = []
+        self.mean_background_length_l = []
+
+        self.mean_background_length_from_consumption_s = []
+        self.mean_background_lick_from_consumption_s = []
+        self.mean_background_length_from_consumption_l = []
+        self.mean_background_lick_from_consumption_l = []
 
     def processSelectedTrials(self, trial_num, df, curr_opt_wait, timescape_type):
         # this function will process selected trials dataframe
@@ -440,11 +450,11 @@ class Session:
                 self.animal.all_holding_s.extend(licks)
                 self.animal.all_holding_s_list.append(licks)
                 self.animal.all_holding_s_index.append(len(self.animal.all_holding_s))
-                self.animal.mean_background_length_s.append(mean_background_length)
-                self.animal.mean_background_length_from_consumption_s.append(mean_next_background_length)
-                self.animal.mean_background_lick_from_consumption_s.append(mean_background_licks)
+                self.mean_background_length_s.append(mean_background_length)
+                self.mean_background_length_from_consumption_s.append(mean_next_background_length)
+                self.mean_background_lick_from_consumption_s.append(mean_background_licks)
                 self.animal.perc_bout_into_background_s.append(perc_bout_into_background_good)
-                self.animal.reflex_lick_perc_s.append(len(licks[licks <= self.reflex_length])/len(licks))
+                self.reflex_lick_perc_s.append(len(licks[licks <= self.reflex_length])/len(licks))
                 self.non_reflexive_s.append((licks[licks > self.reflex_length]))
                # print(f'std of current licking is {np.std(licks)}')
                 self.animal.holding_s_std.append(np.std(licks))
@@ -473,11 +483,11 @@ class Session:
                 self.animal.all_holding_l.extend(licks)
                 self.animal.all_holding_l_list.append(licks)
                 self.animal.all_holding_l_index.append(len(self.animal.all_holding_l))
-                self.animal.mean_background_length_l.append(mean_background_length)
-                self.animal.mean_background_length_from_consumption_l.append(mean_next_background_length)
-                self.animal.mean_background_lick_from_consumption_l.append(mean_background_licks)
+                self.mean_background_length_l.append(mean_background_length)
+                self.mean_background_length_from_consumption_l.append(mean_next_background_length)
+                self.mean_background_lick_from_consumption_l.append(mean_background_licks)
                 self.animal.perc_bout_into_background_l.append(perc_bout_into_background_good)
-                self.animal.reflex_lick_perc_l.append(len(licks[licks <= self.reflex_length]) / len(licks))
+                self.reflex_lick_perc_l.append(len(licks[licks <= self.reflex_length]) / len(licks))
                 self.non_reflexive_l.append(licks[licks > self.reflex_length])
                 # print(self.non_reflexive_l)
                 self.animal.holding_l_std.append(np.std(licks))
@@ -570,12 +580,40 @@ class Session:
         self.animal.non_reflexive_s_std.append(non_reflexive_s_std)
         self.animal.non_reflexive_l_mean.append(non_reflexive_l_mean)
         self.animal.non_reflexive_l_std.append(non_reflexive_l_std)
+        self.animal.reflex_lick_perc_s.append(np.mean(self.reflex_lick_perc_s) if len(self.reflex_lick_perc_s)>0
+                                              else np.nan)
+        self.animal.reflex_lick_perc_l.append(np.mean(self.reflex_lick_perc_l) if len(self.reflex_lick_perc_l) > 0
+                                              else np.nan)
 
         self.animal.holding_s_q25.append(np.mean(self.q25_s) if len(self.q25_s) > 0 else np.nan)
         self.animal.holding_l_q25.append(np.mean(self.q25_l) if len(self.q25_l) > 0 else np.nan)
         self.animal.holding_s_q75.append(np.mean(self.q75_s) if len(self.q75_s) > 0 else np.nan)
         self.animal.holding_l_q75.append(np.mean(self.q75_l) if len(self.q75_l) > 0 else np.nan)
 
+        self.animal.mean_background_length_s.append(np.mean(self.mean_background_length_s)
+                                                    if len(self.mean_background_length_s) > 0 else np.nan)
+        self.animal.mean_background_length_l.append(np.mean(self.mean_background_length_l)
+                                                    if len(self.mean_background_length_l) > 0 else np.nan)
+
+        self.animal.mean_background_length_from_consumption_s.append(
+            np.mean(self.mean_background_length_from_consumption_s)
+            if len(self.mean_background_length_from_consumption_s) > 0
+            else np.nan)
+
+        self.animal.mean_background_length_from_consumption_l.append(
+            np.mean(self.mean_background_length_from_consumption_l)
+            if len(self.mean_background_length_from_consumption_l) > 0
+            else np.nan)
+
+        self.animal.mean_background_lick_from_consumption_l.append(
+            np.mean(self.mean_background_lick_from_consumption_l)
+            if len(self.mean_background_lick_from_consumption_l) > 0
+            else np.nan)
+
+        self.animal.mean_background_lick_from_consumption_s.append(
+            np.mean(self.mean_background_lick_from_consumption_s)
+            if len(self.mean_background_lick_from_consumption_s) > 0
+            else np.nan)
 
         self.animal.bg_restart_s.append(mean(self.bg_repeats_s) if len(self.bg_repeats_s) > 0 else np.nan)
         self.animal.bg_restart_l.append(mean(self.bg_repeats_l) if len(self.bg_repeats_l) > 0 else np.nan)

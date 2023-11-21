@@ -13,6 +13,69 @@ import matplotlib.colors as colors
 import utils
 
 
+
+def plotCohortDiff(long, short, type, reverse_index):
+    # bg repeats times
+    long_mean, long_std, padded_long = utils.calculate_padded_averages_and_std(long)
+    short_mean, short_std, padded_short = utils.calculate_padded_averages_and_std(short)
+
+    fig, ax = plt.subplots()
+    # Plot the line graph for long sessions
+    x = list(range(1, len(long_mean) + 1))
+    y = long_mean
+    ax.plot(x, y, marker='o', label='Average_long', color='red')
+
+    # Shade the area around the line plot to represent the standard deviation for long sessions
+    ax.fill_between(x, [mean - std for mean, std in zip(y, long_std)],
+                    [mean + std for mean, std in zip(y, long_std)], alpha=0.5,
+                    label='Standard Deviation_long',
+                    color='#FFAAAA')
+    # Plot the line graph for short sessions
+    x = list(range(1, len(short_mean) + 1))
+    y = short_mean
+    ax.plot(x, y, marker='o', label='Average_short', color='blue')
+
+    # Shade the area around the line plot to represent the standard deviation for short sessions
+    ax.fill_between(x, [mean - std for mean, std in zip(y, short_std)],
+                    [mean + std for mean, std in zip(y, short_std)], alpha=0.5,
+                    label='Standard Deviation_short',
+                    color='lightblue')
+    ax.set_xlabel('session #')
+
+    ax.axvspan(min(x), reverse_index + 0.5, color='yellow', alpha=0.1, label='default')  # Red patch before x_split
+    ax.axvspan(reverse_index + 0.5, max(x), color='green', alpha=0.1, label='change')
+
+    if type == 'perc':
+        ax.set_ylabel('%')
+    elif type == 'time':
+        ax.set_ylabel('time (s)')
+    elif type == 'count':
+        ax.set_ylabel('#')
+    ax.legend()
+
+    return long_mean, short_mean
+
+
+def plotAllAnimalWaiting(long_mice_list, long_session_mean, short_mice_list, short_session_mean ):
+    fig, ax = plt.subplots()
+    # Iterate through each sublist and plot it as a line
+    for mice, animal_sessions in zip(long_mice_list, long_session_mean):
+        # print(animal_sessions)
+        x = list(range(1, len(animal_sessions) + 1))  # Generate x values (1, 2, 3, ...)
+        y = animal_sessions
+        ax.plot(x, y, marker='o', label=mice)
+
+    for mice, animal_sessions in zip(short_mice_list, short_session_mean):
+        # print(animal_sessions)
+        x = list(range(1, len(animal_sessions) + 1))  # Generate x values (1, 2, 3, ...)
+        y = animal_sessions
+        ax.plot(x, y, marker='o', label=mice)
+    # Customize the plot
+    ax.set_xlabel('sessions')
+    ax.set_ylabel('mean waiting time')
+    ax.legend()
+    plt.savefig('all animal waiting.svg')
+
 def set_axis_style(ax, labels):
     ax.set_xticks(np.arange(1, len(labels) + 1), labels=labels)
     ax.set_xlim(0.25, len(labels) + 0.75)
@@ -60,7 +123,8 @@ def plotTrialSplit(mouse, default):
     trial_type = ['miss', 'repeat', 'good']
     # Width of each bar
     bar_width = 0.35
-    fig, ax = plt.subplots()  # Create a new figure and axes for each plot
+    fig, ax = plt.subplots(figsize=(15, 5))
+  # Create a new figure and axes for each plot
     if mouse.default_session_num > 0 and mouse.change_session_num > 0:
         # Example list pairs
 
@@ -172,11 +236,11 @@ def plotHoldingWithError(mouse, default, optimal_wait):
         x = np.arange(1, len(merged_median)+1)
         plt.errorbar(x, merged_median, yerr=[error_low, error_high], fmt='o', color='black', capsize=5, elinewidth=2,
                      barsabove=True, errorevery=1)
-        print(f' where is value {values_s_median}')
-        plt.plot(x, values_s_median, 'bs', label='Short - median', markersize=8, markerfacecolor='none')
-        plt.plot(x, values_l_median, 'rs', label='Long - median', markersize=8, markerfacecolor='none')
-        plt.plot(x, values_s_mean, 'bo', label='Short - mean', markersize=8, markerfacecolor='none')
-        plt.plot(x, values_l_mean, 'ro', label='Long - mean', markersize=8, markerfacecolor='none')
+        #print(f' where is value {values_s_median}')
+        #plt.plot(x, values_s_median, 'bs', label='Short - median', markersize=8, markerfacecolor='none')
+        #plt.plot(x, values_l_median, 'rs', label='Long - median', markersize=8, markerfacecolor='none')
+        #plt.plot(x, values_s_mean, 'bo', label='Short - mean', markersize=8, markerfacecolor='none')
+        #plt.plot(x, values_l_mean, 'ro', label='Long - mean', markersize=8, markerfacecolor='none')
         ax.axhline(y=optimal_wait[1], color='r', linestyle='--', label='Optimal_long')
         ax.axhline(y=optimal_wait[0], color='b', linestyle='--', label='Optimal_Short')
 

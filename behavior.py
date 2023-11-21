@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pkg_resources import resource_string
 
+import plots
 import utils
 from animal import Animal
 from session import Session
@@ -73,6 +74,8 @@ class BehaviorAnalysis:
     #             mouse.stable_l.append(mouse.moving_average_l[k])
     #     print(len(mouse.stable_l))
 
+
+
     def allAnimal(self, animals):
         animal_num = len(animals)
         for i in range(animal_num):
@@ -80,7 +83,7 @@ class BehaviorAnalysis:
             curr_default = self.animal_assignment[animal]['default'][0]
             curr_change = self.animal_assignment[animal]['change'][0]
 
-            curr_animal = Animal(animal, curr_default, curr_change, self.task_params)
+            curr_animal = Animal(animal, curr_default, curr_change, self.task_params, self.optimal_wait)
             self.mice.append(curr_animal)
             default_path = self.path + "\\" + animal + "\\" + 'default'
             print(f'Trying to change to directory: {default_path}')
@@ -126,277 +129,138 @@ class BehaviorAnalysis:
         print(self.block_diff)
         print(self.stable_block_diff)
 
-    def PlotCohortDiff(self):
+    def PlotCohortDiff(self, default_only, *args):
         path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + self.task_params
         os.chdir(path)
         print(f'plotting and saving in {path}')
         reverse_session = []
-        for i in range(len(self.mice)):
-            mouse = self.mice[i].name
-            reverse_session.append(self.mice[i].reverse_index)
-            print(f'{mouse} get reversed at {self.mice[i].reverse_index}')
-            list_pairs = [(self.mice[i].holding_l_mean, self.mice[i].holding_s_mean),
-                          (self.mice[i].non_reflexive_l_mean, self.mice[i].non_reflexive_s_mean),
-                          (self.mice[i].bg_restart_l, self.mice[i].bg_restart_s),
-                          (self.mice[i].reflex_lick_perc_l, self.mice[i].reflex_lick_perc_s),
-                          (self.mice[i].bg_restart_licks_l, self.mice[i].bg_restart_licks_s),
-                          (self.mice[i].mean_background_length_l, self.mice[i].mean_background_length_s),
-                          (self.mice[i].miss_perc_l, self.mice[i].miss_perc_s)
-                          ]
-            if self.animal_assignment[self.mice[i].name]['default'][0] == "long":
-                merged_lists = [utils.merge_lists_with_sources(list1, list2) for list1, list2 in list_pairs]
-                self.long_mice_list.append(mouse)
-                self.long_session_mean.append([x[0] for x in merged_lists[0]])
-                self.long_session_nonimpulsive_mean.append([x[0] for x in merged_lists[1]])
-                self.long_consumption_length.append(self.mice[i].mean_consumption_length)
-                self.long_bg_repeat.append([x[0] for x in merged_lists[2]])
-                self.long_impulsive_perc.append([x[0] for x in merged_lists[3]])
-                self.all_licks_by_session_l.append(self.mice[i].all_holding_l_by_session + self.mice[i].all_holding_s_by_session)
-                self.long_bg_repeat_times.append([x[0] for x in merged_lists[4]])
-                self.bg_length_l.append([x[0] for x in merged_lists[5]])
-                self.long_missing_perc.append([x[0] for x in merged_lists[6]])
-            else:
-                merged_lists = [utils.merge_lists_with_sources(list1, list2) for list2, list1 in list_pairs]
-                self.short_mice_list.append(mouse)
-                self.short_session_mean.append([x[0] for x in merged_lists[0]])
-                self.short_session_nonimpulsive_mean.append([x[0] for x in merged_lists[1]])
-                self.short_consumption_length.append(self.mice[i].mean_consumption_length)
-                self.short_bg_repeat.append([x[0] for x in merged_lists[2]])
-                self.short_impulsive_perc.append([x[0] for x in merged_lists[3]])
-                self.all_licks_by_session_s.append(self.mice[i].all_holding_s_by_session + self.mice[i].all_holding_l_by_session)
-                self.short_bg_repeat_times.append([x[0] for x in merged_lists[4]])
-                self.bg_length_s.append([x[0] for x in merged_lists[5]])
-                self.short_missing_perc.append([x[0] for x in merged_lists[6]])
 
-        fig, ax = plt.subplots()
-        # Iterate through each sublist and plot it as a line
-        for mice, animal_sessions in zip(self.long_mice_list, self.long_session_mean):
-           # print(animal_sessions)
-            x = list(range(1, len(animal_sessions) + 1))  # Generate x values (1, 2, 3, ...)
-            y = animal_sessions
-            ax.plot(x, y, marker='o', label=mice)
+        if len(args) > 0:
+            num_before_transition = args[0]
 
-        for mice, animal_sessions in zip(self.short_mice_list, self.short_session_mean):
-           # print(animal_sessions)
-            x = list(range(1, len(animal_sessions) + 1))  # Generate x values (1, 2, 3, ...)
-            y = animal_sessions
-            ax.plot(x, y, marker='o', label=mice)
-        # Customize the plot
-        ax.set_xlabel('sessions')
-        ax.set_ylabel('mean waiting time')
-        ax.legend()
-        plt.savefig('all animal waiting.svg')
+        if default_only:
+            for i in range(len(self.mice)):
+                mouse = self.mice[i].name
+                if self.animal_assignment[self.mice[i].name]['default'][0] == "long":
+                    self.long_mice_list.append(mouse)
+                    self.long_session_mean.append(self.mice[i].holding_l_mean)
+                    self.long_session_nonimpulsive_mean.append(self.mice[i].non_reflexive_l_mean)
+                    self.long_consumption_length.append(self.mice[i].mean_consumption_length)
+                    self.long_bg_repeat.append(self.mice[i].bg_restart_l)
+                    self.long_impulsive_perc.append(self.mice[i].reflex_lick_perc_l)
+                    self.all_licks_by_session_l.append(self.mice[i].all_holding_l_by_session)
+                    self.long_bg_repeat_times.append(self.mice[i].bg_restart_licks_l)
+                    self.bg_length_l.append(self.mice[i].mean_background_length_l)
+                    self.long_missing_perc.append(self.mice[i].miss_perc_l)
+                else:
+                    self.short_mice_list.append(mouse)
+                    self.short_session_mean.append(self.mice[i].holding_s_mean)
+                    self.short_session_nonimpulsive_mean.append(self.mice[i].non_reflexive_s_mean)
+                    self.short_consumption_length.append(self.mice[i].mean_consumption_length)
+                    self.short_bg_repeat.append(self.mice[i].bg_restart_s)
+                    self.short_impulsive_perc.append(self.mice[i].reflex_lick_perc_s)
+                    self.all_licks_by_session_s.append(self.mice[i].all_holding_s_by_session)
+                    self.short_bg_repeat_times.append(self.mice[i].bg_restart_licks_s)
+                    self.bg_length_s.append(self.mice[i].mean_background_length_s)
+                    self.short_missing_perc.append(self.mice[i].miss_perc_s)
+        else:
+            for i in range(len(self.mice)):
+                mouse = self.mice[i].name
+                reverse_session.append(self.mice[i].reverse_index)
+                print(f'{mouse} get reversed at {self.mice[i].reverse_index}')
 
-        # bg repeats times
-        print(self.long_missing_perc)
-        long_miss_perc_mean, long_miss_perc_std, padded_long = calculate_padded_averages_and_std(
-            self.long_missing_perc)
-        short_miss_perc_mean, short_miss_perc_std, padded_short = calculate_padded_averages_and_std(
-            self.short_missing_perc)
+               # if self.animal_assignment[self.mice[i].name]['default'][0] == "long":
+                num_session = -(num_before_transition + self.mice[i].change_session_num)
+                   # num_short_session = -self.mice[i].change_session_num
+                # else:
+                #     num_short_session = -num_before_transition + self.mice[i].change_session_num
+                #     num_long_session = -self.mice[i].change_session_num
+                # print(f'long session for this mouse selected is {num_long_session}')
+                # print(len(self.mice[i].holding_l_mean[num_long_session:]))
+                # print(f'short session for this mouse selected is {num_short_session}')
+                # print(len(self.mice[i].holding_s_mean[num_short_session:]))
+                list_pairs = [
+                    (self.mice[i].holding_l_mean[num_session:], self.mice[i].holding_s_mean[num_session:]),
+                    (self.mice[i].non_reflexive_l_mean[num_session:], self.mice[i].non_reflexive_s_mean[num_session:]),
+                    (self.mice[i].bg_restart_l[num_session:], self.mice[i].bg_restart_s[num_session:]),
+                    (self.mice[i].reflex_lick_perc_l[num_session:], self.mice[i].reflex_lick_perc_s[num_session:]),
+                    (self.mice[i].bg_restart_licks_l[num_session:], self.mice[i].bg_restart_licks_s[num_session:]),
+                    (self.mice[i].mean_background_length_l[num_session:], self.mice[i].mean_background_length_s[num_session:]),
+                    (self.mice[i].miss_perc_l[num_session:], self.mice[i].miss_perc_s[num_session:])]
 
-        fig, ax = plt.subplots()
-        # Plot the line graph for long sessions
-        x = list(range(1, len(long_miss_perc_mean) + 1))
-        y = long_miss_perc_mean
-        ax.plot(x, y, marker='o', label='Average_long', color='red')
+                if self.animal_assignment[self.mice[i].name]['default'][0] == "long":
+                    merged_lists = [utils.merge_lists_with_sources(list1, list2) for list1, list2 in list_pairs]
+                    self.long_mice_list.append(mouse)
+                    self.long_session_mean.append([x[0] for x in merged_lists[0]])
+                    self.long_session_nonimpulsive_mean.append([x[0] for x in merged_lists[1]])
+                    self.long_consumption_length.append(self.mice[i].mean_consumption_length)
+                    self.long_bg_repeat.append([x[0] for x in merged_lists[2]])
+                    self.long_impulsive_perc.append([x[0] for x in merged_lists[3]])
+                    self.all_licks_by_session_l.append(self.mice[i].all_holding_l_by_session + self.mice[i].all_holding_s_by_session)
+                    self.long_bg_repeat_times.append([x[0] for x in merged_lists[4]])
+                    self.bg_length_l.append([x[0] for x in merged_lists[5]])
+                    self.long_missing_perc.append([x[0] for x in merged_lists[6]])
+                else:
+                    merged_lists = [utils.merge_lists_with_sources(list1, list2) for list2, list1 in list_pairs]
+                    self.short_mice_list.append(mouse)
+                    self.short_session_mean.append([x[0] for x in merged_lists[0]])
+                    self.short_session_nonimpulsive_mean.append([x[0] for x in merged_lists[1]])
+                    self.short_consumption_length.append(self.mice[i].mean_consumption_length)
+                    self.short_bg_repeat.append([x[0] for x in merged_lists[2]])
+                    self.short_impulsive_perc.append([x[0] for x in merged_lists[3]])
+                    self.all_licks_by_session_s.append(self.mice[i].all_holding_s_by_session + self.mice[i].all_holding_l_by_session)
+                    self.short_bg_repeat_times.append([x[0] for x in merged_lists[4]])
+                    self.bg_length_s.append([x[0] for x in merged_lists[5]])
+                    self.short_missing_perc.append([x[0] for x in merged_lists[6]])
 
-        # Shade the area around the line plot to represent the standard deviation for long sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, long_miss_perc_std)],
-                        [mean + std for mean, std in zip(y, long_miss_perc_std)], alpha=0.5,
-                        label='Standard Deviation_long',
-                        color='#FFAAAA')
-        # Plot the line graph for short sessions
-        x = list(range(1, len(short_miss_perc_mean) + 1))
-        y = short_miss_perc_mean
-        ax.plot(x, y, marker='o', label='Average_short', color='blue')
+        plots.plotAllAnimalWaiting(self.long_mice_list, self.long_session_mean,
+                                   self.short_mice_list, self.short_session_mean)
 
-        # Shade the area around the line plot to represent the standard deviation for short sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, short_miss_perc_std)],
-                        [mean + std for mean, std in zip(y, short_miss_perc_std)], alpha=0.5,
-                        label='Standard Deviation_short',
-                        color='lightblue')
-        ax.set_xlabel('session #')
-        ax.set_ylabel('%')
-        ax.legend()
+        plots.plotCohortDiff(self.long_missing_perc, self.short_missing_perc, 'perc', num_before_transition)
         plt.savefig('missing percentages.svg')
         plt.close()
 
-        # bg repeats times
-        long_bg_length_mean, long_bg_length_std, padded_long = calculate_padded_averages_and_std(
-            self.bg_length_l)
-        short_bg_length_mean, short_bg_length_std, padded_short = calculate_padded_averages_and_std(
-            self.bg_length_s)
-
-        fig, ax = plt.subplots()
-        # Plot the line graph for long sessions
-        x = list(range(1, len(long_bg_length_mean) + 1))
-        y = long_bg_length_mean
-        ax.plot(x, y, marker='o', label='Average_long', color='red')
-
-        # Shade the area around the line plot to represent the standard deviation for long sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, long_bg_length_std)],
-                        [mean + std for mean, std in zip(y, long_bg_length_std)], alpha=0.5,
-                        label='Standard Deviation_long',
-                        color='#FFAAAA')
-        # Plot the line graph for short sessions
-        x = list(range(1, len(short_bg_length_mean) + 1))
-        y = short_bg_length_mean
-        ax.plot(x, y, marker='o', label='Average_short', color='blue')
-
-        # Shade the area around the line plot to represent the standard deviation for short sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, short_bg_length_std)],
-                        [mean + std for mean, std in zip(y, short_bg_length_std)], alpha=0.5,
-                        label='Standard Deviation_short',
-                        color='lightblue')
-        ax.set_xlabel('session #')
-        ax.set_ylabel('time(s)')
-        ax.legend()
+        long_bg_length_mean, short_bg_length_mean = plots.plotCohortDiff(self.bg_length_l, self.bg_length_s,
+                                                                         'time', num_before_transition)
         plt.savefig('background lengths.svg')
         plt.close()
 
-        # bg repeats times
-        long_bg_repeat_time_averages, long_bg_repeat_time_std, padded_long = calculate_padded_averages_and_std(
-            self.long_bg_repeat_times)
-        short_bg_repeat_time_averages, short_bg_repeat_time_std, padded_short = calculate_padded_averages_and_std(
-            self.short_bg_repeat_times)
-
-        fig, ax = plt.subplots()
-        # Plot the line graph for long sessions
-        x = list(range(1, len(long_bg_repeat_time_averages) + 1))
-        y = long_bg_repeat_time_averages
-        ax.plot(x, y, marker='o', label='Average_long', color='red')
-
-        # Shade the area around the line plot to represent the standard deviation for long sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, long_bg_repeat_time_std)],
-                        [mean + std for mean, std in zip(y, long_bg_repeat_time_std)], alpha=0.5,
-                        label='Standard Deviation_long',
-                        color='#FFAAAA')
-        # Plot the line graph for short sessions
-        x = list(range(1, len(short_bg_repeat_time_averages) + 1))
-        y = short_bg_repeat_time_averages
-        ax.plot(x, y, marker='o', label='Average_short', color='blue')
-
-        # Shade the area around the line plot to represent the standard deviation for short sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, short_bg_repeat_time_std)],
-                        [mean + std for mean, std in zip(y, short_bg_repeat_time_std)], alpha=0.5,
-                        label='Standard Deviation_short',
-                        color='lightblue')
-        ax.set_xlabel('session #')
-        ax.set_ylabel('number of repeat trigger')
-        ax.legend()
+        plots.plotCohortDiff(self.long_bg_repeat_times, self.short_bg_repeat_times, 'count', num_before_transition)
         plt.savefig('repeat trigger times.svg')
         plt.close()
 
        # impuslive perc
-        long_impusive_perc_averages, long_impusive_perc_std, padded_long = calculate_padded_averages_and_std(self.long_impulsive_perc)
-        short_impusive_perc_averages, short_impusive_perc_std, padded_short = calculate_padded_averages_and_std(self.short_impulsive_perc)
-
-        fig, ax = plt.subplots()
-        # Plot the line graph for long sessions
-        x = list(range(1, len(long_impusive_perc_averages) + 1))
-        y = long_impusive_perc_averages
-        ax.plot(x, y, marker='o', label='Average_long', color='red')
-
-        # Shade the area around the line plot to represent the standard deviation for long sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, long_impusive_perc_std)],
-                        [mean + std for mean, std in zip(y, long_impusive_perc_std)], alpha=0.5,
-                        label='Standard Deviation_long',
-                        color='#FFAAAA')
-        # Plot the line graph for short sessions
-        x = list(range(1, len(short_impusive_perc_averages) + 1))
-        y = short_impusive_perc_averages
-        ax.plot(x, y, marker='o', label='Average_short', color='blue')
-
-        # Shade the area around the line plot to represent the standard deviation for short sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, short_impusive_perc_std)],
-                        [mean + std for mean, std in zip(y, short_impusive_perc_std)], alpha=0.5,
-                        label='Standard Deviation_short',
-                        color='lightblue')
-        ax.set_xlabel('session #')
-        ax.set_ylabel('percentage')
-        ax.legend()
+        plots.plotCohortDiff(self.long_impulsive_perc, self.short_impulsive_perc, 'perc', num_before_transition)
         plt.savefig('impulsive licking percentage.svg')
         plt.close()
 
         # bg repeats plot
-        long_repeat_averages, long_std_repeat, padded_long = calculate_padded_averages_and_std(self.long_bg_repeat)
-        short_repeat_averages, short_std_repeat, padded_short = calculate_padded_averages_and_std(self.short_bg_repeat)
-
-        fig, ax = plt.subplots()
-        # Plot the line graph for long sessions
-        x = list(range(1, len(long_repeat_averages) + 1))
-        y = long_repeat_averages
-        ax.plot(x, y, marker='o', label='Average_long', color='red')
-
-        # Shade the area around the line plot to represent the standard deviation for long sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, long_std_repeat)],
-                        [mean + std for mean, std in zip(y, long_std_repeat)], alpha=0.5,
-                        label='Standard Deviation_long',
-                        color='#FFAAAA')
-        # Plot the line graph for short sessions
-        x = list(range(1, len(short_repeat_averages) + 1))
-        y = short_repeat_averages
-        ax.plot(x, y, marker='o', label='Average_short', color='blue')
-
-        # Shade the area around the line plot to represent the standard deviation for short sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, short_std_repeat)],
-                        [mean + std for mean, std in zip(y, short_std_repeat)], alpha=0.5,
-                        label='Standard Deviation_short',
-                        color='lightblue')
-        ax.set_xlabel('session #')
-        ax.set_ylabel('percentage')
-        ax.legend()
+        plots.plotCohortDiff(self.long_bg_repeat_times, self.short_bg_repeat_times, 'count', num_before_transition)
         plt.savefig('bg repeats for long vs short cohorts.svg')
         plt.close()
 
-        long_com_averages, long_com_std, padded_long = calculate_padded_averages_and_std(self.long_consumption_length)
-        short_com_averages, short_com_std, padded_short = calculate_padded_averages_and_std(
-            self.short_consumption_length)
-        fig, ax = plt.subplots()
-        # Plot the line graph for long sessions
-        x = list(range(1, len(long_com_averages) + 1))
-        y = long_com_averages
-        ax.plot(x, y, marker='o', label='Average_long', color='red')
-
-        # Shade the area around the line plot to represent the standard deviation for long sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, long_com_std)],
-                        [mean + std for mean, std in zip(y, long_com_std)], alpha=0.5,
-                        label='Standard Deviation_long',
-                        color='#FFAAAA')
-        # Plot the line graph for short sessions
-        x = list(range(1, len(short_com_averages) + 1))
-        y = short_com_averages
-        ax.plot(x, y, marker='o', label='Average_short', color='blue')
-
-        # Shade the area around the line plot to represent the standard deviation for short sessions
-        ax.fill_between(x, [mean - std for mean, std in zip(y, short_com_std)],
-                        [mean + std for mean, std in zip(y, short_com_std)], alpha=0.5,
-                        label='Standard Deviation_short',
-                        color='lightblue')
-
-        ax.set_xlabel('session #')
-        ax.set_ylabel('time (s)')
-        ax.legend()
+        long_com_averages, short_com_averages = plots.plotCohortDiff(self.long_consumption_length,
+                                                                     self.short_consumption_length, 'time',
+                                                                     num_before_transition)
         plt.savefig('consumption times long vs short cohorts.svg')
         plt.close()
 
-        adjusted_long_optimal = utils.getOptimalTime(self.param_dict['m2'],self.param_dict['p2'],
-                                                     long_bg_length_mean[-1] + long_com_averages[-1])
-        adjusted_short_optimal = utils.getOptimalTime(self.param_dict['m1'],self.param_dict['p1'],
-                                                     short_bg_length_mean[-1] + short_com_averages[-1])
+        adjusted_long_optimal = utils.getOptimalTime(self.param_dict['m2'], self.param_dict['p2'],
+                                                     utils.find_last_not_nan(long_bg_length_mean) +
+                                                     utils.find_last_not_nan(long_com_averages))
+        adjusted_short_optimal = utils.getOptimalTime(self.param_dict['m1'], self.param_dict['p1'],
+                                                     utils.find_last_not_nan(short_bg_length_mean) +
+                                                      utils.find_last_not_nan(short_com_averages))
 
         # session plots
-        long_session_averages, long_std_session, padded_long = calculate_padded_averages_and_std(self.long_session_mean)
-        short_session_averages, short_std_session, padded_short = calculate_padded_averages_and_std(self.short_session_mean)
+        long_session_averages, long_std_session, padded_long = utils.calculate_padded_averages_and_std(self.long_session_mean)
+        short_session_averages, short_std_session, padded_short = utils.calculate_padded_averages_and_std(self.short_session_mean)
 
         fig, ax = plt.subplots()
         # Plot the line graph for long sessions
         x = list(range(1, len(long_session_averages) + 1))
         y = long_session_averages
         ax.plot(x, y, marker='o', label='Average_long', color='red')
-        ax.axhline(y=self.optimal_wait[1], color='r', linestyle='--', label='Optimal_long')
-        ax.axhline(y=adjusted_long_optimal, color='lightcoral', linestyle='--', label='adjusted_optimal_long')
-
 
         # Shade the area around the line plot to represent the standard deviation for long sessions
         ax.fill_between(x, [mean - std for mean, std in zip(y, long_std_session)],
@@ -407,15 +271,20 @@ class BehaviorAnalysis:
         x = list(range(1, len(short_session_averages) + 1))
         y = short_session_averages
         ax.plot(x, y, marker='o', label='Average_short', color='blue')
-        ax.axhline(y=self.optimal_wait[0], color='b', linestyle='--', label='Optimal_short')
-        ax.axhline(y=adjusted_short_optimal, color='lightblue', linestyle='--', label='adjusted_optimal_short')
-
         # Shade the area around the line plot to represent the standard deviation for short sessions
         ax.fill_between(x, [mean - std for mean, std in zip(y, short_std_session)],
                         [mean + std for mean, std in zip(y, short_std_session)], alpha=0.5,
                         label='Standard Deviation_short',
                         color='lightblue')
-        sig = compare_lists_with_significance(padded_long, padded_short)
+
+        ax.axhline(y=self.optimal_wait[1], color='r', linestyle='--', label='Optimal_long')
+        ax.axhline(y=adjusted_long_optimal, color='lightcoral', linestyle='--', label='adjusted_optimal_long')
+        ax.axhline(y=self.optimal_wait[0], color='b', linestyle='--', label='Optimal_short')
+        ax.axhline(y=adjusted_short_optimal, color='lightblue', linestyle='--', label='adjusted_optimal_short')
+        ax.axvspan(min(x), num_before_transition + 0.5, color='yellow', alpha=0.1, label='default')  # Red patch before x_split
+        ax.axvspan(num_before_transition + 0.5, max(x), color='green', alpha=0.1, label='change')
+
+        sig = utils.compare_lists_with_significance(padded_long, padded_short)
         for i in sig['high']:
             ax.annotate('***', xy=(x[i], y[i]), xytext=(x[i], 0), textcoords='data',
                         arrowprops=dict(arrowstyle="->"), rotation='vertical')
@@ -424,15 +293,15 @@ class BehaviorAnalysis:
             ax.annotate('*', xy=(x[i], y[i]), xytext=(x[i], 0), textcoords='data',
                         arrowprops=dict(arrowstyle="->"), rotation='vertical')
 
-        ax.set_xlabel('session #')
-        ax.set_ylabel('wait time (s)')
-        ax.legend()
+        # ax.set_xlabel('session #')
+        # ax.set_ylabel('wait time (s)')
+        # ax.legend()
         plt.savefig('session average for long vs short cohorts.svg')
         plt.close()
 
         # non_impulsive licks
-        long_averages, long_std_deviation, padded_long = calculate_padded_averages_and_std(self.long_session_nonimpulsive_mean)
-        short_averages, short_std_deviation, padded_short = calculate_padded_averages_and_std(self.short_session_nonimpulsive_mean)
+        long_averages, long_std_deviation, padded_long = utils.calculate_padded_averages_and_std(self.long_session_nonimpulsive_mean)
+        short_averages, short_std_deviation, padded_short = utils.calculate_padded_averages_and_std(self.short_session_nonimpulsive_mean)
         fig, ax = plt.subplots()
         # Plot the line graph for long sessions
         x = list(range(1, len(long_averages) + 1))
@@ -455,7 +324,7 @@ class BehaviorAnalysis:
                         [mean + std for mean, std in zip(y, short_std_deviation)], alpha=0.5, label='Standard Deviation_short',
                         color='lightblue')
 
-        non_impuslive_sig = compare_lists_with_significance(padded_long, padded_short)
+        non_impuslive_sig = utils.compare_lists_with_significance(padded_long, padded_short)
         for i in non_impuslive_sig['high']:
             ax.annotate('***', xy=(x[i], y[i]), xytext=(x[i], 0), textcoords='data',
                         arrowprops=dict(arrowstyle="->"), rotation='vertical')
@@ -511,45 +380,3 @@ class BehaviorAnalysis:
         plt.tight_layout()
         plt.savefig('PDE for cohorts across sessions.svg')
         plt.close()
-
-
-
-
-def calculate_padded_averages_and_std(data):
-    print(data)
-    max_length = max(len(sublist) for sublist in data)
-    averages = [sum(sublist) / len(sublist) if len(sublist) > 0 else 0 for sublist in data]
-    padded_data = [
-        [entry if entry != 0 else avg for entry in sublist] + [avg] * (max_length - len(sublist))
-        for sublist, avg in zip(data, averages)
-    ]
-    averages = [sum(entry) / len(padded_data) for entry in zip(*padded_data)]
-
-    std_deviation = np.std(padded_data, axis=0, ddof=0)
-
-    return averages, std_deviation, padded_data
-
-def compare_lists_with_significance(list1, list2, alpha=0.05, alpha_high=0.001):
-    # Find the minimum length of sublists
-    min_length = min(len(sublist1) for sublist1 in list1) if list1 else 0
-    min_length = min(min_length, min(len(sublist2) for sublist2 in list2) if list2 else 0)
-    significant_locations = {'low': [], 'high': []}
-
-    # Iterate over the entries at the same positions in all sublists
-    sublist_length = len(list1[0])
-    for i in range(min_length):
-        data1 = [sublist[i] for sublist in list1]
-        data2 = [sublist[i] for sublist in list2]
-
-        # Perform an independent t-test between the corresponding data points
-        t_stat, p_value = stats.ttest_ind(data1, data2)
-
-        # Check if the p-value is less than the significance level (alpha)
-        if p_value < alpha_high:
-            significant_locations['high'].append(i)
-        elif p_value < alpha:
-            significant_locations['low'].append(i)
-
-    return significant_locations
-
-
