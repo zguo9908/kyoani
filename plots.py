@@ -13,13 +13,20 @@ import utils
 
 
 def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwargs):
-    # bg repeats times
     long_mean, long_std, padded_long = utils.calculate_padded_averages_and_std(long)
     short_mean, short_std, padded_short = utils.calculate_padded_averages_and_std(short)
 
     fig, ax = plt.subplots()
     # Plot the line graph for long sessions
-    x = list(range(1, len(long_mean) + 1))
+    if plot_patch:
+        reverse_index = kwargs.get("num_before_transition")
+        x = [i - reverse_index for i in range(1, len(short_mean) + 1)]
+        ax.axvspan(min(x), 0.5, color='yellow', alpha=0.1, label='default')
+        ax.axvspan(0.5, max(x), color='green', alpha=0.1, label='change')
+        # Plot the line graph for short sessions
+    else:
+        x = list(range(1, len(short_mean) + 1))
+    # plot long
     y = long_mean
     ax.plot(x, y, marker='o', label='Average_long', color='red')
 
@@ -28,8 +35,7 @@ def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwar
                     [mean + std for mean, std in zip(y, long_std)], alpha=0.5,
                     label='Standard Deviation_long',
                     color='#FFAAAA')
-    # Plot the line graph for short sessions
-    x = list(range(1, len(short_mean) + 1))
+    # plot short
     y = short_mean
     ax.plot(x, y, marker='o', label='Average_short', color='blue')
 
@@ -38,12 +44,8 @@ def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwar
                     [mean + std for mean, std in zip(y, short_std)], alpha=0.5,
                     label='Standard Deviation_short',
                     color='lightblue')
-    ax.set_xlabel('session #')
 
-    if plot_patch:
-        reverse_index = kwargs.get("num_before_transition")
-        ax.axvspan(min(x), reverse_index + 0.5, color='yellow', alpha=0.1, label='default')
-        ax.axvspan(reverse_index + 0.5, max(x), color='green', alpha=0.1, label='change')
+    ax.set_xlabel('session #')
 
     if type == 'perc':
         ax.set_ylabel('%')
@@ -78,8 +80,6 @@ def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwar
             if key == "adjusted_short":
                 ax.axhline(y=kwargs.get('adjusted_short'), color='lightblue', linestyle='--',
                            label='adjusted_optimal_short')
-
-
     return long_mean, short_mean
 
 
