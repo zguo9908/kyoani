@@ -9,12 +9,10 @@ import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
 import matplotlib.colors as colors
-
 import utils
 
 
-
-def plotCohortDiff(long, short, type, reverse_index):
+def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwargs):
     # bg repeats times
     long_mean, long_std, padded_long = utils.calculate_padded_averages_and_std(long)
     short_mean, short_std, padded_short = utils.calculate_padded_averages_and_std(short)
@@ -42,8 +40,10 @@ def plotCohortDiff(long, short, type, reverse_index):
                     color='lightblue')
     ax.set_xlabel('session #')
 
-    ax.axvspan(min(x), reverse_index + 0.5, color='yellow', alpha=0.1, label='default')  # Red patch before x_split
-    ax.axvspan(reverse_index + 0.5, max(x), color='green', alpha=0.1, label='change')
+    if plot_patch:
+        reverse_index = kwargs.get("num_before_transition")
+        ax.axvspan(min(x), reverse_index + 0.5, color='yellow', alpha=0.1, label='default')
+        ax.axvspan(reverse_index + 0.5, max(x), color='green', alpha=0.1, label='change')
 
     if type == 'perc':
         ax.set_ylabel('%')
@@ -51,7 +51,34 @@ def plotCohortDiff(long, short, type, reverse_index):
         ax.set_ylabel('time (s)')
     elif type == 'count':
         ax.set_ylabel('#')
+    elif type == 'rate':
+        ax.set_ylabel('ul/s')
     ax.legend()
+
+    if find_sig:
+        sig = utils.compare_lists_with_significance(padded_long, padded_short)
+        for i in sig['high']:
+            ax.annotate('***', xy=(x[i], y[i]), xytext=(x[i], 0), textcoords='data',
+                        arrowprops=dict(arrowstyle="->"), rotation='vertical')
+
+        for i in sig['low']:
+            ax.annotate('*', xy=(x[i], y[i]), xytext=(x[i], 0), textcoords='data',
+                        arrowprops=dict(arrowstyle="->"), rotation='vertical')
+
+    if plot_optimal:
+        for key, value in kwargs.items():
+            print(f"Optional {key}: {value}")
+            if key == "opt_long":
+                ax.axhline(y=kwargs.get('opt_long'), color='r', linestyle='--', label='Optimal_long')
+            if key == "opt_short":
+                ax.axhline(y=kwargs.get('opt_short'), color='b', linestyle='--', label='Optimal_short')
+            if key == "adjusted_long":
+                ax.axhline(y=kwargs.get('adjusted_long'), color='lightcoral', linestyle='--',
+                           label='adjusted_optimal_long')
+            if key == "adjusted_short":
+                ax.axhline(y=kwargs.get('adjusted_short'), color='lightblue', linestyle='--',
+                           label='adjusted_optimal_short')
+
 
     return long_mean, short_mean
 
@@ -430,6 +457,16 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         x = np.arange(1, len(mice[i].mean_consumption_licks) + 1)
         background_patches(curr_default, mice[i], ax, x)
         plt.savefig(f'{mice[i].name} mean consumption licks.svg')
+        plt.close()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.plot(mice[i].mean_session_reward_rate)
+        ax.set_title(f'{mice[i].name} mean reward rate')
+        ax.set_xlabel("session")
+        ax.set_ylabel("reward rate (ul/s)")
+        x = np.arange(1, len(mice[i].mean_consumption_licks) + 1)
+        background_patches(curr_default, mice[i], ax, x)
+        plt.savefig(f'{mice[i].name} mean session reward rate.svg')
         plt.close()
 
         #---------------------background length from consumption-----------------------#

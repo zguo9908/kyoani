@@ -256,6 +256,7 @@ class Session:
         self.blk_end_slope = []
 
         self.session_reward_rate = []
+        self.mean_session_reward_rate = []
         self.session_holding_times = []
         self.reflex_lick_perc_l = []
         self.reflex_lick_perc_s = []
@@ -329,6 +330,7 @@ class Session:
         else:
             session_data['total_volume_received'] = session_data['total_reward']*10
         self.session_reward_rate = session_data['total_volume_received']/(session_data['session_time'])
+
         # print(session_data['total_volume_received'].iloc[-1])
         # print(session_data['session_time'].iloc[-1])
         # print(f'mean of session reward rate is {self.session_reward_rate.mean()}')
@@ -371,6 +373,7 @@ class Session:
                 self.session_holding_times.append(licks)
                 self.animal.mean_consumption_length.append(mean_consumption_length)
                 self.animal.mean_consumption_licks.append(mean_consumption_licks)
+                self.animal.mean_session_reward_rate.append(self.session_reward_rate.mean())
                 if len(licks) >= 10 and blk_trial_num >= 10:
                     self.valid_block_type.append(self.block_type[k-1])
                     self.blkVarianceAnalysis(licks)
@@ -442,6 +445,7 @@ class Session:
                                                         self.processSelectedTrials(good_trials_num, trials_good, curr_opt_wait, timescape_type)
             self.animal.mean_consumption_length.append(mean_consumption_length)
             self.animal.mean_consumption_licks.append(mean_consumption_licks)
+            self.animal.mean_session_reward_rate.append(self.session_reward_rate.mean())
 
 
             # all session data for non-block, updates should be done in updates function!
