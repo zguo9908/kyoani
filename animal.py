@@ -1,10 +1,13 @@
 # class Animal holds relevant information about a mouse
 import os
 import statistics
+import numpy as np
+import utils
 from session import Session
 
 class Animal:
-    def __init__(self, name, default, change, task_params, optimal_wait):
+    def __init__(self, name, default, change, sex, single_housing, task_params, optimal_wait):
+        self.sex = None
         self.holding_l_by_block = []
         self.holding_s_by_block = []
         self.session_num = None
@@ -13,6 +16,8 @@ class Animal:
         self.name = name
         self.default = default
         self.change = change
+        self.sex = sex
+        self.single_housed = single_housing
         self.task_params = task_params
         self.optimal_wait = optimal_wait
         self.sessions = []
@@ -110,9 +115,6 @@ class Animal:
         self.all_holding_l_index = []
         self.all_holding_s_by_session = []
         self.all_holding_l_by_session = []
-
-        self.sessoion_index = []
-
         self.mean_consumption_length = []
         self.mean_consumption_licks = []
 
@@ -126,8 +128,9 @@ class Animal:
         self.mean_background_length_l = []
 
         self.mean_session_reward_rate = []
-
         self.reverse_index = -1
+        self.session_adjusted_optimal = []
+
 
     def allSession(self, path, stage, has_block):
         os.chdir(path)
@@ -136,9 +139,9 @@ class Animal:
             print(f'number of sessions processing {self.default_session_num}')
             curr_session_num = self.default_session_num
             curr_sessions = self.default_sessions
-        else:
+        elif stage == 'change':
             self.change_session_num = len(self.change_sessions)
-            print(f'number of sessions processing {self.default_session_num}')
+            print(f'number of sessions processing {self.change_session_num}')
             curr_session_num = self.change_session_num
             curr_sessions = self.change_sessions
 
@@ -191,3 +194,27 @@ class Animal:
             sublist = curr_all_l[:k + 1]
             mean = sum(sublist) / len(sublist)
             self.holding_l_by_block.append(mean)
+
+    def getAdjustedOptimal(self):
+        self.session_adjusted_optimal = [0]*len(self.mean_consumption_length)
+        print(self.mean_background_length_s)
+        if self.default == 'long':
+            for i in range(self.default_session_num):
+                self.session_adjusted_optimal[i] = utils.getOptimalTime(3, 0.9, self.mean_consumption_length[i]
+                                                                        + self.mean_background_length_l[i])
+            for i in range(self.default_session_num+1, self.change_session_num+self.default_session_num):
+                self.session_adjusted_optimal[i] = utils.getOptimalTime(1, 0.9, self.mean_consumption_length[i]
+                                                                        + self.mean_background_length_s[i]) if not \
+                    np.isnan(self.mean_consumption_length[i]+self.mean_background_length_s[i]) else np.nan
+        else:
+            for i in range(self.default_session_num):
+                self.session_adjusted_optimal[i] = utils.getOptimalTime(1, 0.9, self.mean_consumption_length[i]
+                                                                        + self.mean_background_length_s[i])
+            for i in range(self.default_session_num+1, self.change_session_num+self.default_session_num):
+                self.session_adjusted_optimal[i] = utils.getOptimalTime(3, 0.9, self.mean_consumption_length[i]
+                                                                        + self.mean_background_length_l[i]) if not \
+                    np.isnan(self.mean_consumption_length[i] + self.mean_background_length_l[i]) else np.nan
+
+                print(f'adjusted optimal times are {self.session_adjusted_optimal}')
+        print(len(self.session_adjusted_optimal))
+        print(len(self.session_adjusted_optimal)==len(self.sessions))

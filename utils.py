@@ -18,7 +18,7 @@ def getOptimalTime(m,p,bg):
     return optimal_time
 
 def calculate_padded_averages_and_std(data):
-    print(data)
+    # print(data)
     max_length = max(len(sublist) for sublist in data)
     averages = [sum(sublist) / len(sublist) if len(sublist) > 0 else 0 for sublist in data]
     padded_data = [

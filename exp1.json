@@ -1,23 +1,57 @@
 {
-  "timescape": {"ZG020":
-                  {"default":["short","s"], "change":["long","l"]},
-                "ZG021":
-                  {"default":["long","l"], "change":["short","s"]},
-                "ZG022":
-                  {"default":["long","l"], "change":["short","s"]},
-                "ZG023":
-                  {"default":["long","l"], "change":["short","s"]},
-                "ZG024":
-                  {"default":["short","s"], "change":["long","l"]},
-                "ZG025":
-                  {"default":["short","s"], "change":["long","l"]},
-                "ZG026":
-                  {"default":["long","l"], "change":["short","s"]},
-                "ZG027":
-                  {"default":["long","l"], "change":["short","s"]},
-                "ZG028":
-                  {"default":["short","s"], "change":["long","l"]},
-                "ZG029":
-                  {"default":["short","s"], "change":["long","l"]}
-  }
+  "ZG020":[
+        {"timescape":{"default":["short","s"],
+                       "change":["long","l"]},
+          "sex":["F"],
+          "single_housed": ["T"]}],
+  "ZG021":[
+        {"timescape":{"default":["long","l"],
+                      "change":["short","s"]},
+          "sex":["F"],
+          "single_housed": ["T"]}],
+  "ZG022":[
+        {"timescape":{"default":["long","l"],
+                      "change":["short","s"]},
+          "sex":["M"],
+          "single_housed": ["F"]}],
+  "ZG023":[
+        {"timescape":{"default":["long","l"],
+                      "change":["short","s"]},
+          "sex":["M"],
+          "single_housed": ["F"]}],
+  "ZG024":[
+        {"timescape":{"default":["short","s"],
+                      "change":["long","l"]},
+          "sex":["M"],
+          "single_housed": ["T"]}],
+  "ZG025":[
+        {"timescape":{"default":["short","s"],
+                      "change":["long","l"]},
+          "sex":["M"],
+          "single_housed": ["T"]}],
+  "ZG026":[
+        {"timescape":{"default":["long","l"],
+                      "change":["short","s"]},
+          "sex":["F"],
+          "single_housed": ["F"]}],
+  "ZG027":[
+        {"timescape":{"default":["long","l"],
+                      "change":["short","s"]},
+          "sex":["F"],
+          "single_housed": ["F"]}],
+  "ZG028":[
+        {"timescape":{"default":["short","s"],
+                      "change":["long","l"]},
+          "sex":["F"],
+          "single_housed": ["F"]}],
+  "ZG029":[
+        {"timescape":{"default":["short","s"],
+                       "change":["long","l"]},
+          "sex":["F"],
+          "single_housed": ["F"]}]
 }
+
+
+
+
+

@@ -38,7 +38,7 @@ if __name__ == '__main__':
     if has_block:
         beh.testBlockDiff()
     else:
-        #beh.PlotCohortDiff(default_only=True)
+           # beh.PlotCohortDiff(default_only=True)
         beh.PlotCohortDiff(False, 10)
         beh.PlotCohortSessionPDEDiff()
 

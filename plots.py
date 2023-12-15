@@ -28,7 +28,7 @@ def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwar
         x = list(range(1, len(short_mean) + 1))
     # plot long
     y = long_mean
-    ax.plot(x, y, marker='o', label='Average_long', color='red')
+    ax.plot(x, y, marker='o', label='Average_long_cohort', color='red')
 
     # Shade the area around the line plot to represent the standard deviation for long sessions
     ax.fill_between(x, [mean - std for mean, std in zip(y, long_std)],
@@ -37,7 +37,7 @@ def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwar
                     color='#FFAAAA')
     # plot short
     y = short_mean
-    ax.plot(x, y, marker='o', label='Average_short', color='blue')
+    ax.plot(x, y, marker='o', label='Average_short_cohort', color='blue')
 
     # Shade the area around the line plot to represent the standard deviation for short sessions
     ax.fill_between(x, [mean - std for mean, std in zip(y, short_std)],
@@ -75,11 +75,15 @@ def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwar
             if key == "opt_short":
                 ax.axhline(y=kwargs.get('opt_short'), color='b', linestyle='--', label='Optimal_short')
             if key == "adjusted_long":
-                ax.axhline(y=kwargs.get('adjusted_long'), color='lightcoral', linestyle='--',
-                           label='adjusted_optimal_long')
+                y = kwargs.get('adjusted_long')
+                plt.step(x, y, where='post', color='lightcoral', label='adjusted_long_cohort')
+                # ax.axhline(y=kwargs.get('adjusted_long'), color='lightcoral', linestyle='--',
+                #            label='adjusted_optimal_long')
             if key == "adjusted_short":
-                ax.axhline(y=kwargs.get('adjusted_short'), color='lightblue', linestyle='--',
-                           label='adjusted_optimal_short')
+                # ax.axhline(y=kwargs.get('adjusted_short'), color='lightblue', linestyle='--',
+                #            label=
+                y = kwargs.get('adjusted_short')
+                plt.step(x, y, where='post', color='lightblue',label='adjusted_short_cohort')
     return long_mean, short_mean
 
 
@@ -228,7 +232,7 @@ def plotTrialSplit(mouse, default):
     ax.set_title(f'{mouse.name} Percentage of Different Trial Types')
     ax.set_xticks(x)
     ax.set_xticklabels(range(1, session_num + 1))
-    ax.legend(trial_type)
+    ax.legend(['default', 'change'] + trial_type)
     plt.savefig(f'{mouse.name}_perc_diff_trials.svg')
     plt.close()
 
@@ -469,6 +473,17 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         plt.savefig(f'{mice[i].name} mean session reward rate.svg')
         plt.close()
 
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.plot(mice[i].session_adjusted_optimal)
+        ax.set_title(f'{mice[i].name} session adjusted optimal times')
+        ax.set_xlabel("session")
+        ax.set_ylabel("time(s)")
+        x = np.arange(1, len(mice[i].session_adjusted_optimal) + 1)
+        background_patches(curr_default, mice[i], ax, x)
+        plt.savefig(f'{mice[i].name} session adjusted optimal.svg')
+        plt.close()
+
+
         #---------------------background length from consumption-----------------------#
         plotPairingLists(mice[i].mean_background_length_from_consumption_s,
                          mice[i].mean_background_length_from_consumption_l, curr_default, 'time')
@@ -483,6 +498,7 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         if saving:
             plt.savefig(f'{mice[i].name} mean_background_lick_from_consumption.svg')
         plt.close()
+
 
         #---------------------percentage lick bout from consumption extending into bg-----------------------#
         plotPairingLists(mice[i].perc_bout_into_background_s,
@@ -538,10 +554,35 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         ax.set_xlabel("trial")
         ax.set_ylabel("holding time(s)")
         ax.legend(['short', 'long'])
-        plt.axis([0, 15000, 0, 13])
+        plt.axis([0, 18000, 0, 30])
         if saving:
             plt.savefig(f'{mice[i].name}_moving_avg_perf.svg')
         plt.close()
+       #----------------------scatter for session optimal vs adjusted actual optimal --------------------------#
+        print(mice[i].session_adjusted_optimal)
+        print(mice[i].default_session_num)
+        if mice[i].default == 'short':
+            cmap = plt.get_cmap('Blues')
+            adjusted_optimal_default = mice[i].session_adjusted_optimal[:mice[i].default_session_num]
+            optimal_default = [optimal_wait[0]] * len(adjusted_optimal_default)
+        elif mice[i].default == 'long':
+            cmap = plt.get_cmap('Reds')
+            adjusted_optimal_default = mice[i].session_adjusted_optimal[:mice[i].default_session_num]
+            optimal_default = [optimal_wait[1]] * len(adjusted_optimal_default)
+        # Normalize the colors based on the range of values
+      #  print(adjusted_optimal_default)
+        colors = np.arange(len(adjusted_optimal_default))
+        #print(len(colors))
+
+        norm = plt.Normalize(min(colors), max(colors))
+        # Create the scatter plot with a gradient of colors
+        plt.scatter(adjusted_optimal_default, optimal_default, c=colors, cmap=cmap, norm=norm, edgecolors='black')
+        # Set labels and title
+        plt.xlabel('adjusted optimal')
+        plt.ylabel('optimal')
+        if saving:
+            plt.savefig(f'{mice[i].name} color gradient evolution.svg')
+
 
         # ---------------------moving averages for block perf-----------------------#
         if has_block:

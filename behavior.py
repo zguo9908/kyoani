@@ -11,6 +11,7 @@ import plots
 import utils
 from animal import Animal
 from session import Session
+#import ruptures as rpt
 from scipy.stats import ttest_ind
 from scipy import stats
 from sklearn.neighbors import KernelDensity
@@ -24,8 +25,7 @@ class BehaviorAnalysis:
 
     def __init__(self, exp_name, optimal_wait, param_dict, task_type, has_block, task_params):
         self.exp_name = exp_name
-        self.exp_config = self.get_exp_config()
-        self.animal_assignment = self.exp_config['timescape']
+        self.animal_assignment = self.get_exp_config()
         self.task_type = task_type
         self.task_params = task_params
         self.has_block = has_block
@@ -63,19 +63,26 @@ class BehaviorAnalysis:
         self.short_missing_perc = []
         self.long_mean_reward_rate = []
         self.short_mean_reward_rate = []
+        self.long_adjusted_optimal = []
+        self.short_adjusted_optimal = []
 
         self.bg_length_s = []
         self.bg_length_l = []
-
 
     def allAnimal(self, animals):
         animal_num = len(animals)
         for i in range(animal_num):
             animal = animals[i]
-            curr_default = self.animal_assignment[animal]['default'][0]
-            curr_change = self.animal_assignment[animal]['change'][0]
+            curr_default = self.animal_assignment.get(animal, [])[0].get("timescape", {}).get("default", [])[0]
+            print(curr_default)
+            curr_change = self.animal_assignment.get(animal, [])[0].get("timescape", {}).get("change", [])[0]
 
-            curr_animal = Animal(animal, curr_default, curr_change, self.task_params, self.optimal_wait)
+            curr_sex = self.animal_assignment.get(animal, [])[0].get("sex", {})[0]
+            curr_single_housing = self.animal_assignment.get(animal, [])[0].get("single_housed", {})[0]
+            curr_single_housed = True if curr_single_housing == "T" else False
+            curr_animal = Animal(animal, curr_default, curr_change, curr_sex, curr_single_housed,
+                                 self.task_params, self.optimal_wait)
+
             self.mice.append(curr_animal)
             default_path = self.path + "\\" + animal + "\\" + 'default'
             print(f'Trying to change to directory: {default_path}')
@@ -85,25 +92,30 @@ class BehaviorAnalysis:
             # filter all the items that are regular
             default_sessions = [session for session in default_session_list if self.task_type in session]
             curr_animal.default_sessions = default_sessions
+            curr_animal.default_session_num = len(default_sessions)
             curr_animal.reverse_index = len(default_sessions)
             # print(curr_animal.reverse_index)
             curr_animal.allSession(default_path, 'default', self.has_block)
             print(f'processing all default sessions for mice {animal}')
 
             change_path = self.path + "\\" + animal + "\\" + 'change'
+            print(f'Trying to change to directory: {change_path}')
             os.chdir(change_path)
             print(f'Current working directory: {os.getcwd()}')
             change_session_list = os.listdir()
             # filter all the items that are regular
             change_sessions = [session for session in change_session_list if self.task_type in session]
             curr_animal.change_sessions = change_sessions
+            curr_animal.change_session_num = len(change_sessions)
+            print(f'change session numer is {curr_animal.change_session_num}')
 
             curr_animal.allSession(change_path, 'change', self.has_block)
             print(f'processing all change sessions for mice {animal}')
             curr_animal.getMovingAvg(window_size=8)
             curr_animal.getBlockWaiting()
-        return self.mice
+            curr_animal.getAdjustedOptimal()
 
+        return self.mice
 
     # test the difference between statictics of different blocks
     def testBlockDiff(self):
@@ -116,6 +128,44 @@ class BehaviorAnalysis:
         print("p-vals for different blocks are")
         print(self.block_diff)
         print(self.stable_block_diff)
+
+    def organize_mice_data(self, grouping_criteria):
+        grouped_data = {}
+
+        for i in range(len(self.mice)):
+            mouse = self.mice[i].name
+            group_key = self.animal_assignment[mouse][grouping_criteria]
+
+            if group_key not in grouped_data:
+                grouped_data[group_key] = {
+                    'mice_list': [],
+                    'session_mean': [],
+                    'session_nonimpulsive_mean': [],
+                    'consumption_length': [],
+                    'mean_reward_rate': [],
+                    'bg_repeat': [],
+                    'impulsive_perc': [],
+                    'all_licks_by_session': [],
+                    'bg_repeat_times': [],
+                    'bg_length': [],
+                    'missing_perc': []
+                }
+
+            grouped_data[group_key]['mice_list'].append(mouse)
+            grouped_data[group_key]['session_mean'].append(self.mice[i].holding_mean)
+            grouped_data[group_key]['session_nonimpulsive_mean'].append(self.mice[i].non_reflexive_mean)
+            grouped_data[group_key]['consumption_length'].append(
+                self.mice[i].mean_consumption_length[self.mice[i].default_session_num:])
+            grouped_data[group_key]['mean_reward_rate'].append(
+                self.mice[i].mean_session_reward_rate[self.mice[i].default_session_num:])
+            grouped_data[group_key]['bg_repeat'].append(self.mice[i].bg_restart)
+            grouped_data[group_key]['impulsive_perc'].append(self.mice[i].reflex_lick_perc)
+            grouped_data[group_key]['all_licks_by_session'].append(self.mice[i].all_holding_by_session)
+            grouped_data[group_key]['bg_repeat_times'].append(self.mice[i].bg_restart_licks)
+            grouped_data[group_key]['bg_length'].append(self.mice[i].mean_background_length)
+            grouped_data[group_key]['missing_perc'].append(self.mice[i].miss_perc)
+
+        return grouped_data
 
     def PlotCohortDiff(self, default_only, *args):
         path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + self.task_params
@@ -131,7 +181,7 @@ class BehaviorAnalysis:
         if default_only:
             for i in range(len(self.mice)):
                 mouse = self.mice[i].name
-                if self.animal_assignment[self.mice[i].name]['default'][0] == "long":
+                if self.mice[i].default == "long":
                     self.long_mice_list.append(mouse)
                     self.long_session_mean.append(self.mice[i].holding_l_mean)
                     self.long_session_nonimpulsive_mean.append(self.mice[i].non_reflexive_l_mean)
@@ -143,6 +193,7 @@ class BehaviorAnalysis:
                     self.long_bg_repeat_times.append(self.mice[i].bg_restart_licks_l)
                     self.bg_length_l.append(self.mice[i].mean_background_length_l)
                     self.long_missing_perc.append(self.mice[i].miss_perc_l)
+                    self.long_adjusted_optimal.append(self.mice[i].session_adjusted_optimal[self.mice[i].default_session_num:])
                 else:
                     self.short_mice_list.append(mouse)
                     self.short_session_mean.append(self.mice[i].holding_s_mean)
@@ -155,6 +206,8 @@ class BehaviorAnalysis:
                     self.short_bg_repeat_times.append(self.mice[i].bg_restart_licks_s)
                     self.bg_length_s.append(self.mice[i].mean_background_length_s)
                     self.short_missing_perc.append(self.mice[i].miss_perc_s)
+                    self.short_adjusted_optimal.append(self.mice[i].session_adjusted_optimal[self.mice[i].default_session_num:])
+
         else:
             for i in range(len(self.mice)):
                 mouse = self.mice[i].name
@@ -171,7 +224,7 @@ class BehaviorAnalysis:
                     (self.mice[i].mean_background_length_l[num_session:], self.mice[i].mean_background_length_s[num_session:]),
                     (self.mice[i].miss_perc_l[num_session:], self.mice[i].miss_perc_s[num_session:])]
 
-                if self.animal_assignment[self.mice[i].name]['default'][0] == "long":
+                if self.mice[i].default == "long":
                     merged_lists = [utils.merge_lists_with_sources(list1, list2) for list1, list2 in list_pairs]
                     self.long_mice_list.append(mouse)
                     self.long_session_mean.append([x[0] for x in merged_lists[0]])
@@ -184,7 +237,7 @@ class BehaviorAnalysis:
                     self.long_bg_repeat_times.append([x[0] for x in merged_lists[4]])
                     self.bg_length_l.append([x[0] for x in merged_lists[5]])
                     self.long_missing_perc.append([x[0] for x in merged_lists[6]])
-
+                    self.long_adjusted_optimal.append(self.mice[i].session_adjusted_optimal[-(self.mice[i].change_session_num+num_before_transition):])
                 else:
                     merged_lists = [utils.merge_lists_with_sources(list1, list2) for list2, list1 in list_pairs]
                     self.short_mice_list.append(mouse)
@@ -192,20 +245,19 @@ class BehaviorAnalysis:
                     self.short_session_nonimpulsive_mean.append([x[0] for x in merged_lists[1]])
                     self.short_consumption_length.append(self.mice[i].mean_consumption_length[-(self.mice[i].change_session_num+num_before_transition):])
                     self.short_mean_reward_rate.append(self.mice[i].mean_session_reward_rate[-(self.mice[i].change_session_num+num_before_transition):])
-                    print(f'appending {self.mice[i].mean_session_reward_rate} to short mean reward')
-                    print(self.short_mean_reward_rate)
                     self.short_bg_repeat.append([x[0] for x in merged_lists[2]])
                     self.short_impulsive_perc.append([x[0] for x in merged_lists[3]])
                     self.all_licks_by_session_s.append(self.mice[i].all_holding_s_by_session + self.mice[i].all_holding_l_by_session)
                     self.short_bg_repeat_times.append([x[0] for x in merged_lists[4]])
                     self.bg_length_s.append([x[0] for x in merged_lists[5]])
                     self.short_missing_perc.append([x[0] for x in merged_lists[6]])
+                    self.short_adjusted_optimal.append(self.mice[i].session_adjusted_optimal[-(self.mice[i].change_session_num+num_before_transition):])
+
 
         plots.plotAllAnimalWaiting(self.long_mice_list, self.long_session_mean,
                                    self.short_mice_list, self.short_session_mean)
 
         plot_patch = False if default_only else True
-        print(plot_patch)
 
         plots.plotCohortDiff(self.long_missing_perc, self.short_missing_perc, 'perc', plot_patch, False, False,
                              num_before_transition=num_before_transition)
@@ -240,6 +292,11 @@ class BehaviorAnalysis:
         plt.savefig('bg repeats for long vs short cohorts.svg')
         plt.close()
 
+        long_adjusted_optimal, short_adjusted_optimal = plots.plotCohortDiff(self.long_adjusted_optimal,
+                                                                             self.short_adjusted_optimal, 'time',
+                                                                             plot_patch, False, False,
+                                                                             num_before_transition = num_before_transition)
+
         long_com_averages, short_com_averages = plots.plotCohortDiff(self.long_consumption_length,
                                                                      self.short_consumption_length, 'time',
                                                                      plot_patch, False, False,
@@ -247,26 +304,26 @@ class BehaviorAnalysis:
         plt.savefig('consumption times long vs short cohorts.svg')
         plt.close()
 
-        adjusted_long_optimal = utils.getOptimalTime(self.param_dict['m2'], self.param_dict['p2'],
-                                                     utils.find_last_not_nan(long_bg_length_mean) +
-                                                     utils.find_last_not_nan(long_com_averages))
-        adjusted_short_optimal = utils.getOptimalTime(self.param_dict['m1'], self.param_dict['p1'],
-                                                     utils.find_last_not_nan(short_bg_length_mean) +
-                                                      utils.find_last_not_nan(short_com_averages))
+        # adjusted_long_optimal = utils.getOptimalTime(self.param_dict['m2'], self.param_dict['p2'],
+        #                                              utils.find_last_not_nan(long_bg_length_mean) +
+        #                                              utils.find_last_not_nan(long_com_averages))
+        # adjusted_short_optimal = utils.getOptimalTime(self.param_dict['m1'], self.param_dict['p1'],
+        #                                              utils.find_last_not_nan(short_bg_length_mean) +
+        #                                               utils.find_last_not_nan(short_com_averages))
 
         # session plots
         plots.plotCohortDiff(self.long_session_mean, self.short_session_mean, 'time', plot_patch, True, True,
                              opt_long=self.optimal_wait[1], opt_short=self.optimal_wait[0],
-                             adjusted_short=adjusted_short_optimal,
-                             adjusted_long=adjusted_long_optimal, num_before_transition=num_before_transition)
+                             adjusted_short=short_adjusted_optimal,
+                             adjusted_long=long_adjusted_optimal, num_before_transition=num_before_transition)
         plt.savefig('session average for long vs short cohorts.svg')
         plt.close()
 
         # non_impulsive licks
         plots.plotCohortDiff(self.long_session_nonimpulsive_mean, self.short_session_nonimpulsive_mean,
                              'time', plot_patch, True, True, opt_long=self.
-                             optimal_wait[1], opt_short=self.optimal_wait[0], adjusted_short=adjusted_short_optimal,
-                             adjusted_long=adjusted_long_optimal, num_before_transition=num_before_transition)
+                             optimal_wait[1], opt_short=self.optimal_wait[0], adjusted_short=short_adjusted_optimal,
+                             adjusted_long=long_adjusted_optimal, num_before_transition=num_before_transition)
         plt.savefig('non impulsive session licks average for long vs short cohorts.svg')
         plt.close()
 
@@ -295,11 +352,11 @@ class BehaviorAnalysis:
                 if cohort == 'cohort_s':
                     sns.kdeplot(licking_data, label='Short Cohort_kde', color='blue', ax=ax, common_norm=False, bw_adjust=.4)
                     sns.histplot(licking_data, kde=False, label='Short Cohort_hist', color='lightblue', stat="density",
-                                 ax=ax, bins=25)
+                                 ax=ax, bins=50)
                 else:
                     sns.kdeplot(licking_data, label='Long Cohort_kde', color='red', ax=ax, common_norm=False, bw_adjust=.4)
                     sns.histplot(licking_data, kde=False, label='Long Cohort_hist', color='lightcoral', stat="density",
-                                 ax=ax, bins=25)
+                                 ax=ax, bins=50)
 
             ax.set_title(f'Session {session + 1}')
             ax.set_ylabel('Density')
