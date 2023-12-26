@@ -34,11 +34,12 @@ if __name__ == '__main__':
     plots.rawPlots(mice, optimal_wait, task_params=task_params, has_block=has_block, saving=True)
     plots.violins(mice, task_params=task_params, has_block=has_block, saving=False)
     plots.plotSession(mice, -1, task_params=task_params, has_block=has_block, saving=True)
-    #
+    plots.plot_all_animal_scatter(mice, has_block= has_block, task_params = task_params)
+    # #
     if has_block:
         beh.testBlockDiff()
     else:
            # beh.PlotCohortDiff(default_only=True)
-        beh.PlotCohortDiff(False, 10)
+        beh.PlotCohortDiff(False, 15)
         beh.PlotCohortSessionPDEDiff()
 

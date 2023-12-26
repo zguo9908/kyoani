@@ -5,10 +5,11 @@ from scipy.signal import find_peaks
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
-import matplotlib.colors as colors
+import matplotlib.colors as mcolors
 import utils
 
 
@@ -107,9 +108,68 @@ def plotAllAnimalWaiting(long_mice_list, long_session_mean, short_mice_list, sho
     ax.legend()
     plt.savefig('all animal waiting.svg')
 
+def adjust_color_intensity(color, factor):
+    r, g, b = mcolors.to_rgb(color)
+    return (r * factor, g * factor, b * factor)
+def plot_all_animal_scatter(mice, has_block, task_params):
+    if has_block:
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
+    else:
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
+    os.chdir(path)
+    print(f'plotting and saving in {path}')
+    # Manually define specific colors for the red and blue families
+    red_family_colors = ['#FF00FF', '#FFC0CB', '#F08080', '#FA8072',
+                         '#DC143C']  # Magenta, Pink, Light Coral, Salmon, Crimson
+    blue_family_colors = ['#00FFFF', '#87CEEB', '#4169E1', '#0047AB',
+                          '#000080']  # Cyan, Sky Blue, Royal Blue, Cobalt, Navy
+
+    fig, ax = plt.subplots()
+    legend_handles = []  # For custom legend
+    # Initialize a color counter for each group
+    color_counter_short = 0
+    color_counter_long = 0
+
+    # Iterate over each mouse and plot their data
+
+    for mouse in mice:
+        base_color = blue_family_colors[mouse.index % len(blue_family_colors)] if mouse.default == 'short' \
+            else red_family_colors[mouse.index % len(red_family_colors)]
+
+        # Your existing code to set the data for each mouse
+        adjusted_optimal_default = mouse.session_adjusted_optimal[:mouse.default_session_num]
+        session_avg = mouse.holding_s_mean[:mouse.default_session_num] if mouse.default == 'short' \
+            else mouse.holding_l_mean[:mouse.default_session_num]
+
+        # Adjust the color intensity based on the session number for gradient effect
+        for session_num in range(mouse.default_session_num):
+            color_intensity = (session_num + 1) / mouse.default_session_num
+            adjusted_color = adjust_color_intensity(base_color, color_intensity)
+
+            plt.scatter(adjusted_optimal_default[session_num], session_avg[session_num],
+                        color=adjusted_color, edgecolors='black')
+            legend_handles.append(mpatches.Patch(color=base_color, label=mouse.name))
+
+    x_d = np.linspace(0, 10, 1000)  # Adjust range as needed
+    y_d = x_d  # Diagonal line where y equals x
+
+    # Plotting the diagonal line
+    plt.plot(x_d, y_d, label='y = x')
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.legend(handles=legend_handles, bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.xticks(np.arange(0, 12, 1))  # Adjust range and interval as needed
+    plt.yticks(np.arange(0, 12, 1))  # Adjust range and interval as needed
+    # Set labels and title
+    plt.xlabel('adjusted optimal')
+    plt.ylabel('session avg')
+    plt.savefig(f'all animal color mean vs adjusted.svg')
+    plt.close()
+
+
 def set_axis_style(ax, labels):
     ax.set_xticks(np.arange(1, len(labels) + 1), labels=labels)
     ax.set_xlim(0.25, len(labels) + 0.75)
+
 
 # Define a function to find the modes in a distribution and estimate standard deviations
 def find_modes_and_stds(data):
@@ -138,6 +198,7 @@ def find_modes_and_stds(data):
 
     return modes, stds
 
+
 def background_patches(default, mouse, ax, x):
     if default == 'long':
         ax.axvspan(min(x), mouse.reverse_index + 0.5, color='red', alpha=0.1)  # Red patch before x_split
@@ -146,8 +207,10 @@ def background_patches(default, mouse, ax, x):
         ax.axvspan(min(x), mouse.reverse_index + 0.5, color='blue', alpha=0.1)  # Red patch before x_split
         ax.axvspan(mouse.reverse_index + 0.5, max(x), color='red', alpha=0.1)
 
+
 def safe_extract(lst, source_label):
     return [x[0] if isinstance(x, tuple) and len(x) > 1 and x[1] == source_label else None for x in lst]
+
 
 def plotTrialSplit(mouse, default):
     colors = ['blue', 'green', 'red']
@@ -559,8 +622,6 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
             plt.savefig(f'{mice[i].name}_moving_avg_perf.svg')
         plt.close()
        #----------------------scatter for session optimal vs adjusted actual optimal --------------------------#
-        print(mice[i].session_adjusted_optimal)
-        print(mice[i].default_session_num)
         if mice[i].default == 'short':
             cmap = plt.get_cmap('Blues')
             adjusted_optimal_default = mice[i].session_adjusted_optimal[:mice[i].default_session_num]
@@ -581,8 +642,41 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         plt.xlabel('adjusted optimal')
         plt.ylabel('optimal')
         if saving:
-            plt.savefig(f'{mice[i].name} color gradient evolution.svg')
+            plt.savefig(f'{mice[i].name} color optimal vs adjusted.svg')
+        plt.close()
 
+        # ----------------------scatter for session average vs adjusted actual optimal --------------------------#
+        if mice[i].default == 'short':
+            cmap = plt.get_cmap('Blues')
+            adjusted_optimal_default = mice[i].session_adjusted_optimal[:mice[i].default_session_num]
+            session_avg = mice[i].holding_s_mean[:mice[i].default_session_num]
+        elif mice[i].default == 'long':
+            cmap = plt.get_cmap('Reds')
+            adjusted_optimal_default = mice[i].session_adjusted_optimal[:mice[i].default_session_num]
+            session_avg = mice[i].holding_l_mean[:mice[i].default_session_num]
+        # Normalize the colors based on the range of values
+        #  print(adjusted_optimal_default)
+        colors = np.arange(len(adjusted_optimal_default))
+
+        norm = plt.Normalize(min(colors), max(colors))
+        # Create the scatter plot with a gradient of colors
+        plt.scatter(adjusted_optimal_default, session_avg, c=colors, cmap=cmap, norm=norm, edgecolors='black')
+
+        x_d = np.linspace(0, 10, 1000)  # Adjust range as needed
+        y_d = x_d  # Diagonal line where y equals x
+
+        # Plotting the diagonal line
+        plt.plot(x_d, y_d, label='y = x')
+        plt.gca().set_aspect('equal', adjustable='box')
+
+        plt.xticks(np.arange(0, 8, 1))  # Adjust range and interval as needed
+        plt.yticks(np.arange(0, 8, 1))  # Adjust range and interval as needed
+        # Set labels and title
+        plt.xlabel('adjusted optimal')
+        plt.ylabel('session avg')
+        if saving:
+            plt.savefig(f'{mice[i].name} color mean vs adjusted.svg')
+        plt.close()
 
         # ---------------------moving averages for block perf-----------------------#
         if has_block:

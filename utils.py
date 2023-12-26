@@ -9,10 +9,11 @@ from scipy import stats
 def getOptimalTime(m,p,bg):
    # print(f'current adjusted backrgound is {bg}')
     f = (1 - exp(-(1/m)*(x-bg)))*p
-    k = np.linspace(2, 30, 1600) # range of x
+    k = np.linspace(bg, 30, 1600) # range of x
     ml1 = dict()
     for i in k:
-        ml1[i]= f.subs(x,i)/i
+        total_time = i
+        ml1[i]= f.subs(x,i)/total_time
    # print(max(ml1, key=ml1.get))
     optimal_time = max(ml1, key=ml1.get) -bg
     return optimal_time

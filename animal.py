@@ -197,7 +197,7 @@ class Animal:
 
     def getAdjustedOptimal(self):
         self.session_adjusted_optimal = [0]*len(self.mean_consumption_length)
-        print(self.mean_background_length_s)
+      #  print(self.mean_background_length_s)
         if self.default == 'long':
             for i in range(self.default_session_num):
                 self.session_adjusted_optimal[i] = utils.getOptimalTime(3, 0.9, self.mean_consumption_length[i]
@@ -215,6 +215,6 @@ class Animal:
                                                                         + self.mean_background_length_l[i]) if not \
                     np.isnan(self.mean_consumption_length[i] + self.mean_background_length_l[i]) else np.nan
 
-                print(f'adjusted optimal times are {self.session_adjusted_optimal}')
-        print(len(self.session_adjusted_optimal))
-        print(len(self.session_adjusted_optimal)==len(self.sessions))
+                # print(f'adjusted optimal times are {self.session_adjusted_optimal}')
+        # print(len(self.session_adjusted_optimal))
+        # print(len(self.session_adjusted_optimal)==len(self.sessions))
