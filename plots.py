@@ -29,19 +29,32 @@ def plot_change_points_test(mice, has_block, task_params):
     print(f'plotting and saving in {path}')
     for i in range(len(mice)):
         curr_animal_path = path + '\\' + mice[i].name
+        os.chdir(curr_animal_path)
         np.random.seed(42)  # for reproducibility
-        merged_perf = utils.merge_lists_with_sources(mice[i].holding_s_mean,
-                                                     mice[i].holding_l_mean)
-        signal = np.array(merged_perf)
+        merged_perf = utils.merge_lists(mice[i].holding_s_mean, mice[i].holding_l_mean)
+        # print([type(item) for item in merged_perf])
+
+        # Convert to NumPy array with a specific dtype, such as float
+        signal = np.array(merged_perf, dtype=float)
 
         # Change point detection
         model = "l2"
         algo = rpt.Binseg(model=model).fit(signal)
-        result = algo.predict(pen=3)
+        result = algo.predict(pen=8)
 
+        background = ['white', 'gray']
+        start = 0
+        for idx, end in enumerate(result+[len(signal)]):
+            plt.axvspan(start, end, facecolor=background[idx % len(background)], alpha=0.5)
+            start = end
         # Display
-        rpt.display(signal, result)
-        plt.title('Change Point Detection on Sample Animal Behavior Data')
+        # rpt.display(signal, result)
+        plt.plot(signal)
+        plt.xlabel("session")
+        plt.ylabel("wait time (s)")
+        plt.axvline(x=mice[i].reverse_index, color='black', linestyle='-', linewidth=1)
+
+        # plt.title('Change Point Detection on Sample Animal Behavior Data')
         plt.savefig(f'{mice[i].name} session change detection test.svg')
         plt.close()
 
@@ -278,7 +291,7 @@ def plotTrialSplit(mouse, default):
 
         good_perc = [1 - (p1 + p2) for p1, p2 in zip(merged_miss_perc, merged_bg_restart)]
         session_num = len(merged_miss_perc)
-        print(f'number of sessions plotting is {session_num}')
+        # print(f'number of sessions plotting is {session_num}')
         x = np.arange(session_num)
         for j in range(session_num):  # Iterate over the sessions
             x_values = [x[j]]  # X-coordinate for the current session
@@ -361,7 +374,7 @@ def plotHoldingWithError(mouse, default, optimal_wait):
             merged_mean = [x[0] for x in merged_lists_with_sources[1]]
             merged_q25 = [x[0] for x in merged_lists_with_sources[2]]
             merged_q75 = [x[0] for x in merged_lists_with_sources[3]]
-        print(f'merged median {merged_median}')
+        # print(f'merged median {merged_median}')
 
         error_low = [max(0, float(median) - float(q25)) for median, q25 in
                      zip(merged_median, merged_q25)]

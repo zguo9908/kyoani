@@ -66,6 +66,10 @@ def merge_lists_with_sources(list1, list2):
     # Merging lists and marking the source
     return [(x, 'List 1') if not math.isnan(x) else (y, 'List 2') for x, y in zip(list1, list2)]
 
+def merge_lists(list1, list2):
+    return [x if not math.isnan(x) else y for x, y in zip(list1, list2)]
+
+
 def set_analysis_path(has_block, task_params):
     if has_block:
         path = os.path.normpath(r'D:\behavior_data') + "\\" + "blocks" + "\\" + task_params

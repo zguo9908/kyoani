@@ -26,7 +26,7 @@ optimal_wait_long = utils.getOptimalTime(m2, p2, bg2)
 print(f'optimal wait time for long timescape is {optimal_wait_long}')
 optimal_wait = [optimal_wait_short, optimal_wait_long]
 
-params_dict = {"m1":m1, "p1": p1, "bg1": bg1, "m2":m2, "p2": p2, "bg2": bg2}
+params_dict = {"m1": m1, "p1": p1, "bg1": bg1, "m2": m2, "p2": p2, "bg2": bg2}
 need_checkpoint = False
 
 if __name__ == '__main__':
@@ -42,15 +42,9 @@ if __name__ == '__main__':
         print("loading previously saved checkpoint")
         with open('mice_data.pkl', 'rb') as file:
             mice = pickle.load(file)
+            beh.mice = mice
 
-    #mice = beh.allAnimal(["ZG022","ZG020"])
     plots.run_all_single_animal_plot(mice, optimal_wait, task_params=task_params, has_block=has_block)
-    # plots.rawPlots(mice, optimal_wait, task_params=task_params, has_block=has_block, saving=True)
-    # plots.violins(mice, task_params=task_params, has_block=has_block, saving=False)
-    # plots.plotSession(mice, -1, task_params=task_params, has_block=has_block, saving=True)
-    # plots.plot_all_animal_scatter(mice, has_block= has_block, task_params = task_params)
-    # plots.plot_change_points_test(mice, has_block=has_block, task_params=task_params)
-    # #
     if has_block:
         beh.testBlockDiff()
     else:

@@ -226,7 +226,7 @@ class BehaviorAnalysis:
         else:
             num_before_transition = -1
         grouped_by_training_program = self.organize_mice_data("timescape", default_only, num_before_transition)
-        print(grouped_by_training_program)
+        print(grouped_by_training_program) #empty?
 
         if default_only:
             for i in range(len(self.mice)):
