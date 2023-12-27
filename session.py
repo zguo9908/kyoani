@@ -89,8 +89,8 @@ def getConsumptionStats(all_df, bout_interval, min_lick_count_consumption):
         # # Display the lick bouts and associated metrics
         # print("Lick Bouts:")
         # print(lick_bouts)
-    else:
-        print("No 'in_consumption' bouts found.")
+    # else:
+    #     print("No 'in_consumption' bouts found.")
     # Add the calculated values to the lick_bouts DataFrame
     # print(f'consumption lengths {consumption_lengths}')
     # print(f'lick length in the background during bouts {background_lengths}')

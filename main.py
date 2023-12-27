@@ -1,7 +1,9 @@
+import os
+
 import utils
 from behavior import BehaviorAnalysis
 import plots
-
+import pickle
 
 def main():
     pass
@@ -25,16 +27,29 @@ print(f'optimal wait time for long timescape is {optimal_wait_long}')
 optimal_wait = [optimal_wait_short, optimal_wait_long]
 
 params_dict = {"m1":m1, "p1": p1, "bg1": bg1, "m2":m2, "p2": p2, "bg2": bg2}
+need_checkpoint = False
 
 if __name__ == '__main__':
     beh = BehaviorAnalysis("exp1", optimal_wait, params_dict, task_type=task_type, has_block=has_block, task_params=task_params)
-    mice = beh.allAnimal(["ZG023", "ZG024", "ZG025", "ZG026", "ZG027", "ZG021", "ZG020", "ZG022", 'ZG028', 'ZG029'])
-    #mice = beh.allAnimal(["ZG022","ZG020"])
+    if need_checkpoint:
+        mice = beh.allAnimal(["ZG023", "ZG026", "ZG027", "ZG022", "ZG021", "ZG020", "ZG024", "ZG025", 'ZG028', 'ZG029'])
+        utils.set_analysis_path(has_block, task_params)
+        with open('mice_data.pkl', 'wb') as file:
+            # Serialize and save the Python object to the file
+            pickle.dump(mice, file)
+    else:
+        utils.set_analysis_path(has_block, task_params)
+        print("loading previously saved checkpoint")
+        with open('mice_data.pkl', 'rb') as file:
+            mice = pickle.load(file)
 
-    plots.rawPlots(mice, optimal_wait, task_params=task_params, has_block=has_block, saving=True)
-    plots.violins(mice, task_params=task_params, has_block=has_block, saving=False)
-    plots.plotSession(mice, -1, task_params=task_params, has_block=has_block, saving=True)
-    plots.plot_all_animal_scatter(mice, has_block= has_block, task_params = task_params)
+    #mice = beh.allAnimal(["ZG022","ZG020"])
+    plots.run_all_single_animal_plot(mice, optimal_wait, task_params=task_params, has_block=has_block)
+    # plots.rawPlots(mice, optimal_wait, task_params=task_params, has_block=has_block, saving=True)
+    # plots.violins(mice, task_params=task_params, has_block=has_block, saving=False)
+    # plots.plotSession(mice, -1, task_params=task_params, has_block=has_block, saving=True)
+    # plots.plot_all_animal_scatter(mice, has_block= has_block, task_params = task_params)
+    # plots.plot_change_points_test(mice, has_block=has_block, task_params=task_params)
     # #
     if has_block:
         beh.testBlockDiff()

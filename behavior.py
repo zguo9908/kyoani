@@ -11,7 +11,8 @@ import plots
 import utils
 from animal import Animal
 from session import Session
-#import ruptures as rpt
+import ruptures as rpt
+from tqdm import tqdm
 from scipy.stats import ttest_ind
 from scipy import stats
 from sklearn.neighbors import KernelDensity
@@ -31,12 +32,7 @@ class BehaviorAnalysis:
         self.has_block = has_block
         self.param_dict = param_dict
         self.optimal_wait = optimal_wait
-        if self.has_block:
-            self.path = os.path.normpath(r'D:\behavior_data') + "\\" + "blocks" + "\\" + task_params
-        else:
-            self.path = os.path.normpath(r'D:\behavior_data') + "\\" + "no_blocks" + "\\" + task_params
-        # print(self.path)
-        os.chdir(self.path)
+        utils.set_analysis_path(self.has_block, self.task_params)
         self.animal_list = os.listdir()
         self.animal_num = len(self.animal_list)
         self.mice = [] # this stores the animal object
@@ -71,7 +67,7 @@ class BehaviorAnalysis:
 
     def allAnimal(self, animals):
         animal_num = len(animals)
-        for i in range(animal_num):
+        for i in tqdm(range(animal_num)):
             animal = animals[i]
             curr_default = self.animal_assignment.get(animal, [])[0].get("timescape", {}).get("default", [])[0]
             print(curr_default)
@@ -85,9 +81,9 @@ class BehaviorAnalysis:
 
             self.mice.append(curr_animal)
             default_path = self.path + "\\" + animal + "\\" + 'default'
-            print(f'Trying to change to directory: {default_path}')
+            # print(f'Trying to change to directory: {default_path}')
             os.chdir(default_path)
-            print(f'Current working directory: {os.getcwd()}')
+            # print(f'Current working directory: {os.getcwd()}')
             default_session_list = os.listdir()
             # filter all the items that are regular
             default_sessions = [session for session in default_session_list if self.task_type in session]
@@ -99,15 +95,15 @@ class BehaviorAnalysis:
             print(f'processing all default sessions for mice {animal}')
 
             change_path = self.path + "\\" + animal + "\\" + 'change'
-            print(f'Trying to change to directory: {change_path}')
+            # print(f'Trying to change to directory: {change_path}')
             os.chdir(change_path)
-            print(f'Current working directory: {os.getcwd()}')
+            # print(f'Current working directory: {os.getcwd()}')
             change_session_list = os.listdir()
             # filter all the items that are regular
             change_sessions = [session for session in change_session_list if self.task_type in session]
             curr_animal.change_sessions = change_sessions
             curr_animal.change_session_num = len(change_sessions)
-            print(f'change session numer is {curr_animal.change_session_num}')
+            # print(f'change session numer is {curr_animal.change_session_num}')
 
             curr_animal.allSession(change_path, 'change', self.has_block)
             print(f'processing all change sessions for mice {animal}')

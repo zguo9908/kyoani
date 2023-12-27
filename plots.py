@@ -11,6 +11,39 @@ from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
 import matplotlib.colors as mcolors
 import utils
+import ruptures as rpt
+
+def run_all_single_animal_plot(mice, optimal_wait, task_params, has_block):
+    rawPlots(mice, optimal_wait, task_params=task_params, has_block=has_block, saving=True)
+    violins(mice, task_params=task_params, has_block=has_block, saving=False)
+    plotSession(mice, -1, task_params=task_params, has_block=has_block, saving=True)
+    plot_all_animal_scatter(mice, has_block=has_block, task_params=task_params)
+    plot_change_points_test(mice, has_block=has_block, task_params=task_params)
+
+def plot_change_points_test(mice, has_block, task_params):
+    if has_block:
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
+    else:
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
+    os.chdir(path)
+    print(f'plotting and saving in {path}')
+    for i in range(len(mice)):
+        curr_animal_path = path + '\\' + mice[i].name
+        np.random.seed(42)  # for reproducibility
+        merged_perf = utils.merge_lists_with_sources(mice[i].holding_s_mean,
+                                                     mice[i].holding_l_mean)
+        signal = np.array(merged_perf)
+
+        # Change point detection
+        model = "l2"
+        algo = rpt.Binseg(model=model).fit(signal)
+        result = algo.predict(pen=3)
+
+        # Display
+        rpt.display(signal, result)
+        plt.title('Change Point Detection on Sample Animal Behavior Data')
+        plt.savefig(f'{mice[i].name} session change detection test.svg')
+        plt.close()
 
 
 def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwargs):
@@ -110,7 +143,10 @@ def plotAllAnimalWaiting(long_mice_list, long_session_mean, short_mice_list, sho
 
 def adjust_color_intensity(color, factor):
     r, g, b = mcolors.to_rgb(color)
-    return (r * factor, g * factor, b * factor)
+    # Ensure color gets denser for later sessions
+    factor = factor ** 2  # Adjust this exponent to control the gradient
+    return (r + (1 - r) * (1 - factor), g + (1 - g) * (1 - factor), b + (1 - b) * (1 - factor))
+
 def plot_all_animal_scatter(mice, has_block, task_params):
     if has_block:
         path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
@@ -133,22 +169,32 @@ def plot_all_animal_scatter(mice, has_block, task_params):
     # Iterate over each mouse and plot their data
 
     for mouse in mice:
-        base_color = blue_family_colors[mouse.index % len(blue_family_colors)] if mouse.default == 'short' \
-            else red_family_colors[mouse.index % len(red_family_colors)]
 
-        # Your existing code to set the data for each mouse
+        if mouse.default == 'short':
+            # Assign a color from the short (blue) family
+            color = blue_family_colors[color_counter_short % len(blue_family_colors)]
+            color_counter_short += 1
+
+            # Your existing code to set the data for short group
+            session_avg = mouse.holding_s_mean[:mouse.default_session_num]
+
+        elif mouse.default == 'long':
+            # Assign a color from the long (red) family
+            color = red_family_colors[color_counter_long % len(red_family_colors)]
+            color_counter_long += 1
+
+            # Your existing code to set the data for long group
+            session_avg = mouse.holding_l_mean[:mouse.default_session_num]
+
         adjusted_optimal_default = mouse.session_adjusted_optimal[:mouse.default_session_num]
-        session_avg = mouse.holding_s_mean[:mouse.default_session_num] if mouse.default == 'short' \
-            else mouse.holding_l_mean[:mouse.default_session_num]
-
-        # Adjust the color intensity based on the session number for gradient effect
+            # Adjust the color intensity based on the session number for gradient effect
         for session_num in range(mouse.default_session_num):
             color_intensity = (session_num + 1) / mouse.default_session_num
-            adjusted_color = adjust_color_intensity(base_color, color_intensity)
+            adjusted_color = adjust_color_intensity(color, color_intensity)
 
             plt.scatter(adjusted_optimal_default[session_num], session_avg[session_num],
                         color=adjusted_color, edgecolors='black')
-            legend_handles.append(mpatches.Patch(color=base_color, label=mouse.name))
+        legend_handles.append(mpatches.Patch(color=color, label=mouse.name))
 
     x_d = np.linspace(0, 10, 1000)  # Adjust range as needed
     y_d = x_d  # Diagonal line where y equals x
@@ -157,8 +203,8 @@ def plot_all_animal_scatter(mice, has_block, task_params):
     plt.plot(x_d, y_d, label='y = x')
     plt.gca().set_aspect('equal', adjustable='box')
     plt.legend(handles=legend_handles, bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.xticks(np.arange(0, 12, 1))  # Adjust range and interval as needed
-    plt.yticks(np.arange(0, 12, 1))  # Adjust range and interval as needed
+    plt.xticks(np.arange(0, 10, 1))  # Adjust range and interval as needed
+    plt.yticks(np.arange(0, 10, 1))  # Adjust range and interval as needed
     # Set labels and title
     plt.xlabel('adjusted optimal')
     plt.ylabel('session avg')
@@ -385,7 +431,7 @@ def plotJitteredDist(mouse, curr_default):
 
         # Find the modes and estimate the standard deviations
         modes, stds = find_modes_and_stds(values)
-        print(f'modes for the current session{modes} and std {stds}')
+        # print(f'modes for the current session{modes} and std {stds}')
 
         for mode, std in zip(modes, stds):
             if mode is not None:
@@ -436,7 +482,7 @@ def plotPairingLists(slist, llist, default, figuretype):
     values_l = [x[0] if x[1] == 'List 2' else None for x in merged_list]
 
     x = np.arange(1, len(merged_list)+1)
-    print(values_s)
+   # print(values_s)
 
     plt.plot(x, values_s, 'bo', label=f'{"Default" if default == "short" else "Change"} ')
     plt.plot(x, values_l, 'ro', label=f'{"Default" if default == "long" else "Change"}')
@@ -448,7 +494,6 @@ def plotPairingLists(slist, llist, default, figuretype):
         ax.set_ylabel('#')
     ax.set_xlabel('Sessions')
     ax.set_xticks(x)
-
 
 def rawPlots(mice, optimal_wait, task_params, has_block, saving):
     #path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
