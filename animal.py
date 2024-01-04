@@ -132,6 +132,7 @@ class Animal:
         self.session_adjusted_optimal = []
 
 
+
     def allSession(self, path, stage, has_block):
         os.chdir(path)
         if stage == 'default':
@@ -200,18 +201,18 @@ class Animal:
       #  print(self.mean_background_length_s)
         if self.default == 'long':
             for i in range(self.default_session_num):
-                self.session_adjusted_optimal[i] = utils.getOptimalTime(3, 0.9, self.mean_consumption_length[i]
+                self.session_adjusted_optimal[i] = utils.get_optimal_time(3, 0.9, self.mean_consumption_length[i]
                                                                         + self.mean_background_length_l[i])
             for i in range(self.default_session_num+1, self.change_session_num+self.default_session_num):
-                self.session_adjusted_optimal[i] = utils.getOptimalTime(1, 0.9, self.mean_consumption_length[i]
+                self.session_adjusted_optimal[i] = utils.get_optimal_time(1, 0.9, self.mean_consumption_length[i]
                                                                         + self.mean_background_length_s[i]) if not \
                     np.isnan(self.mean_consumption_length[i]+self.mean_background_length_s[i]) else np.nan
         else:
             for i in range(self.default_session_num):
-                self.session_adjusted_optimal[i] = utils.getOptimalTime(1, 0.9, self.mean_consumption_length[i]
+                self.session_adjusted_optimal[i] = utils.get_optimal_time(1, 0.9, self.mean_consumption_length[i]
                                                                         + self.mean_background_length_s[i])
             for i in range(self.default_session_num+1, self.change_session_num+self.default_session_num):
-                self.session_adjusted_optimal[i] = utils.getOptimalTime(3, 0.9, self.mean_consumption_length[i]
+                self.session_adjusted_optimal[i] = utils.get_optimal_time(3, 0.9, self.mean_consumption_length[i]
                                                                         + self.mean_background_length_l[i]) if not \
                     np.isnan(self.mean_consumption_length[i] + self.mean_background_length_l[i]) else np.nan
 

@@ -8,7 +8,10 @@ from scipy.stats import sem
 import numpy
 import numpy as np
 import pandas as pd
-
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+import statsmodels.api as sm
 
 def is_float(value):
     try:
@@ -210,6 +213,55 @@ def getLickBoutsIntoBg(df, interval):
     print("\nNumber of Instances with 'in_background' state included in 'in_consumption' bout:", count_instances)
     return lick_bouts, count_instances
 
+def get_prev_lick_impact(lick_time, num_prev_licks=3):
+    lick_df = pd.DataFrame(lick_time, columns=['lick_time'])
+
+    # Dynamically creating individual lagged features
+    for i in range(1, num_prev_licks + 1):
+        lick_df[f'prev_lick_{i}'] = lick_df['lick_time'].shift(i)
+
+    # Dropping rows with NaN values
+    lick_df.dropna(inplace=True)
+
+    # Preparing the dataset for linear regression
+    feature_cols = [f'prev_lick_{i}' for i in range(1, num_prev_licks + 1)]
+    X = lick_df[feature_cols]
+    y = lick_df['lick_time']
+
+    # Building and training the linear regression model
+    model = LinearRegression()
+    model.fit(X, y)
+
+    # Evaluating the model on the entire dataset
+    y_pred = model.predict(X)
+    mse = mean_squared_error(y, y_pred)
+
+    # Returning model coefficients and MSE
+    return model.coef_, mse
+
+def get_regression_results(lick_time, num_prev_licks=3):
+    lick_df = pd.DataFrame(lick_time, columns=['lick_time'])
+
+    # Creating lagged features
+    for i in range(1, num_prev_licks + 1):
+        lick_df[f'prev_lick_{i}'] = lick_df['lick_time'].shift(i)
+
+    lick_df.dropna(inplace=True)
+
+    # Preparing the dataset for linear regression
+    X = lick_df[[f'prev_lick_{i}' for i in range(1, num_prev_licks + 1)]]
+    y = lick_df['lick_time']
+
+    X = sm.add_constant(X)
+    model = sm.OLS(y, X).fit()
+
+    # Extracting coefficients, p-values, and confidence intervals
+    coefficients = model.params
+    p_values = model.pvalues
+    confidence_intervals = model.conf_int()
+
+    return coefficients, p_values, confidence_intervals
+
 
 class Session:
     def __init__(self, animal, file_path, has_block, task_params, optimal_wait):
@@ -296,7 +348,7 @@ class Session:
         self.mean_background_length_from_consumption_l = []
         self.mean_background_lick_from_consumption_l = []
 
-    def processSelectedTrials(self, trial_num, df, curr_opt_wait, timescape_type):
+    def process_selected_trials(self, trial_num, df, curr_opt_wait, timescape_type):
         # this function will process selected trials dataframe
         # within block or within a no-block session
         # can be all trials or just the good trials.
@@ -307,8 +359,11 @@ class Session:
         print(self.file_path)
         mean_prob_at_lick = getProbRewarded(df)
         perc_rewarded_perf = getRewardedPerc(df, trial_num)
+        all_licks = df.loc[(df['key'] == 'lick') & (df['value'] == 1)]
+        all_lick_time = all_licks.curr_wait_time
+        coefficients, p_values, confidence_intervals = get_regression_results(all_lick_time, 3)
         curr_licks_during_wait = df.loc[
-            (df['key'] == 'lick') & (df['state'] == 'in_wait')]
+            (df['key'] == 'lick') & (df['state'] == 'in_wait') & (df['value'] == 1)]
         licks = curr_licks_during_wait.curr_wait_time
         lick_mean, mean_lick_diff = self.getLickStats(licks, curr_opt_wait)
         consumption_lengths, background_lengths, lick_counts_consumption, lick_counts_background, \
@@ -317,7 +372,8 @@ class Session:
 
         return blk_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
                mean_lick_diff, perc_rewarded_perf,  mean_consumption_length, mean_consumption_licks, \
-               mean_next_background_length, mean_background_licks, perc_bout_into_background
+               mean_next_background_length, mean_background_licks, perc_bout_into_background, \
+               coefficients, p_values, confidence_intervals
 
     def parseSessionStats(self):
         session_data = pd.read_csv(self.file_path, skiprows=3)
@@ -357,14 +413,15 @@ class Session:
 
                 blk_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
                 mean_lick_diff, perc_rewarded_perf, mean_consumption_length, mean_consumption_licks, \
-                mean_next_background_length, mean_background_licks,perc_bout_into_background = \
-                                                                    self.processSelectedTrials(blk_trial_num, blk_cp,
+                mean_next_background_length, mean_background_licks,perc_bout_into_background, \
+                coefficients, p_values, confidence_intervals = \
+                                                                    self.process_selected_trials(blk_trial_num, blk_cp,
                                                                                 curr_opt_wait, timescape_type)
 
                 blk_missed_perc_good, miss_trials_good, mean_prob_at_lick_good, licks_good, lick_mean_good, \
                 mean_lick_diff_good, perc_rewarded_perf_good, mean_consumption_length_good, mean_consumption_licks_good, \
                 mean_next_background_length_good, mean_background_licks_good, perc_bout_into_background_good =\
-                                                                    self.processSelectedTrials(good_trials_num,
+                                                                    self.process_selected_trials(good_trials_num,
                                                                          trials_good, curr_opt_wait, timescape_type)
 
                 self.block_type.append(timescape_type)
@@ -436,13 +493,16 @@ class Session:
 
             session_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
             mean_lick_diff, perc_rewarded_perf, mean_consumption_length, mean_consumption_licks, mean_next_background_length, \
-            mean_background_licks, perc_bout_into_background = self.processSelectedTrials( session_trial_num, session_data_cp,
-                                                                            curr_opt_wait, timescape_type)
+            mean_background_licks, perc_bout_into_background, coefficients, p_values, confidence_intervals\
+                = self.process_selected_trials(
+                session_trial_num, session_data_cp, curr_opt_wait, timescape_type)
 
             session_missed_perc_good, miss_trials_good, mean_prob_at_lick_good, licks_good, lick_mean_good, \
             mean_lick_diff_good, perc_rewarded_perf_good, mean_consumption_length_good, mean_consumption_licks_good, \
             mean_next_background_length_good, mean_background_licks_good, perc_bout_into_background_good = \
-                                                        self.processSelectedTrials(good_trials_num, trials_good, curr_opt_wait, timescape_type)
+                                                        self.process_selected_trials(good_trials_num,
+                                                                                     trials_good, curr_opt_wait,
+                                                                                     timescape_type)
             self.animal.mean_consumption_length.append(mean_consumption_length)
             self.animal.mean_consumption_licks.append(mean_consumption_licks)
             self.animal.mean_session_reward_rate.append(self.session_reward_rate.mean())

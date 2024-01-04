@@ -4,10 +4,10 @@ import os
 import numpy as np
 from sympy.abc import x,y
 from sympy import *
-from scipy.stats import ttest_ind
+from scipy.stats import ttest_ind, expon
 from scipy import stats
 
-def getOptimalTime(m,p,bg):
+def get_optimal_time(m,p,bg):
    # print(f'current adjusted backrgound is {bg}')
     f = (1 - exp(-(1/m)*(x-bg)))*p
     k = np.linspace(bg, 30, 1600) # range of x
@@ -18,6 +18,25 @@ def getOptimalTime(m,p,bg):
    # print(max(ml1, key=ml1.get))
     optimal_time = max(ml1, key=ml1.get) -bg
     return optimal_time
+
+def get_optimal_time_expon(time_array, m,p,bg):
+    reward_pdf = expon.pdf(time_array, 0, m)*p
+    reward_cdf = expon.cdf(time_array, 0, m)*p
+
+    ps_reward_rate = np.zeros(len(time_array))
+    gb_reward_rate = np.zeros(len(time_array))
+    total_time = bg + time_array
+    for i in range(0, len(time_array)):
+        t = time_array[i]
+        prob_rewarded_before_t = reward_cdf[i]
+
+        ps_reward_rate[i] = prob_rewarded_before_t / t
+        gb_reward_rate[i] = prob_rewarded_before_t / total_time[i]
+    optimal_giveup_index_rou_g = np.argmax(gb_reward_rate)
+    optimal_giveup_time_rou_g = time_array[optimal_giveup_index_rou_g]
+    optimal_giveup_index_rou_l = np.argmax(ps_reward_rate)
+    optimal_giveup_time_rou_l = time_array[optimal_giveup_index_rou_l]
+    return gb_reward_rate, ps_reward_rate, optimal_giveup_time_rou_g, optimal_giveup_time_rou_l
 
 def calculate_padded_averages_and_std(data):
     # print(data)
@@ -76,3 +95,4 @@ def set_analysis_path(has_block, task_params):
     else:
         path = os.path.normpath(r'D:\behavior_data') + "\\" + "no_blocks" + "\\" + task_params
     os.chdir(path)
+    return path
