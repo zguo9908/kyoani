@@ -1,5 +1,3 @@
-import os
-
 import utils
 from behavior import BehaviorAnalysis
 import plots
@@ -37,9 +35,13 @@ if __name__ == '__main__':
         mice = beh.process_all_animals(["ZG023", "ZG026", "ZG027", "ZG022", "ZG021",
                                         "ZG020", "ZG024", "ZG025", 'ZG028', 'ZG029'])
         utils.set_analysis_path(has_block, task_params)
+        # lick value == 1 being change
         with open('mice_data_change.pkl', 'wb') as file:
             # Serialize and save the Python object to the file
             pickle.dump(mice, file)
+
+        plots.run_all_single_animal_plot(mice, optimal_wait, task_params=task_params, has_block=has_block)
+
     else:
         utils.set_analysis_path(has_block, task_params)
         print("loading previously saved checkpoint")
@@ -47,11 +49,10 @@ if __name__ == '__main__':
             mice = pickle.load(file)
             beh.mice = mice
 
-    plots.run_all_single_animal_plot(mice, optimal_wait, task_params=task_params, has_block=has_block)
     if has_block:
-        beh.testBlockDiff()
+        beh.test_block_diff()
     else:
-           # beh.PlotCohortDiff(default_only=True)
-        beh.PlotCohortDiff(False, 15)
+        beh.find_group_diff(default_only=True)
+       # beh.PlotCohortDiff(False, 15)
         beh.PlotCohortSessionPDEDiff()
 

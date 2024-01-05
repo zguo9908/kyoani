@@ -96,3 +96,20 @@ def set_analysis_path(has_block, task_params):
         path = os.path.normpath(r'D:\behavior_data') + "\\" + "no_blocks" + "\\" + task_params
     os.chdir(path)
     return path
+
+def get_categories(group):
+    categories = []
+    if group == "timescape":
+        categories = ['long', 'short']
+    elif group == "sex":
+        categories = ['M', 'F']
+    elif group == 'single_housed':
+        categories = ['T', 'F']
+    return categories
+
+def is_float(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False

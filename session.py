@@ -13,13 +13,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import statsmodels.api as sm
 
-def is_float(value):
-    try:
-        float(value)
-        return True
-    except ValueError:
-        return False
-
 
 def getRewardedPerc(df, trial_num):
     rewarded_trial = df.loc[(df['key'] == 'reward') & (df['value'] == 1)]
@@ -273,10 +266,6 @@ class Session:
         self.task_params = task_params
         self.optimal_wait = optimal_wait
         self.lickbout = 0.3
-        # if task_params == "curr_params":
-        #     self.optimal_wait = [1.74, 3.45]
-        # elif task_params == "old_params":
-        #     self.optimal_wait = [1.52, 2.93]
 
         self.block_type = []
         self.valid_block_type = []

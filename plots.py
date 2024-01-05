@@ -59,37 +59,41 @@ def plot_change_points_test(mice, has_block, task_params):
         plt.close()
 
 
-def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwargs):
-    long_mean, long_std, padded_long = utils.calculate_padded_averages_and_std(long)
-    short_mean, short_std, padded_short = utils.calculate_padded_averages_and_std(short)
+def plot_group_diff(g1, g2, categories, type, plot_patch, find_sig, plot_optimal, **kwargs):
+    g1_mean, g1_std, padded_g1 = utils.calculate_padded_averages_and_std(g1)
+    g2_mean, g2_std, padded_g2 = utils.calculate_padded_averages_and_std(g2)
 
     fig, ax = plt.subplots()
     # Plot the line graph for long sessions
     if plot_patch:
         reverse_index = kwargs.get("num_before_transition")
-        x = [i - reverse_index for i in range(1, len(short_mean) + 1)]
+        x = [i - reverse_index for i in range(1, len(g2_mean) + 1)]
         ax.axvspan(min(x), 0.5, color='yellow', alpha=0.1, label='default')
         ax.axvspan(0.5, max(x), color='green', alpha=0.1, label='change')
         # Plot the line graph for short sessions
     else:
-        x = list(range(1, len(short_mean) + 1))
+        x = list(range(1, len(g2_mean) + 1))
     # plot long
-    y = long_mean
-    ax.plot(x, y, marker='o', label='Average_long_cohort', color='red')
+    y = g1_mean
+    if len(x) != len(y):
+        x_long = list(range(1, len(g1_mean) + 1))
+    else:
+        x_long = x
+    ax.plot(x_long, y, marker='o', label=f'Average_{categories[0]}_group', color='red')
 
     # Shade the area around the line plot to represent the standard deviation for long sessions
-    ax.fill_between(x, [mean - std for mean, std in zip(y, long_std)],
-                    [mean + std for mean, std in zip(y, long_std)], alpha=0.5,
-                    label='Standard Deviation_long',
+    ax.fill_between(x_long, [mean - std for mean, std in zip(y, g1_std)],
+                    [mean + std for mean, std in zip(y, g1_std)], alpha=0.5,
+                    label=f'Standard Deviation_{categories[0]}',
                     color='#FFAAAA')
     # plot short
-    y = short_mean
-    ax.plot(x, y, marker='o', label='Average_short_cohort', color='blue')
+    y = g2_mean
+    ax.plot(x, y, marker='o', label=f'Average_{categories[1]}_group', color='blue')
 
     # Shade the area around the line plot to represent the standard deviation for short sessions
-    ax.fill_between(x, [mean - std for mean, std in zip(y, short_std)],
-                    [mean + std for mean, std in zip(y, short_std)], alpha=0.5,
-                    label='Standard Deviation_short',
+    ax.fill_between(x, [mean - std for mean, std in zip(y, g2_std)],
+                    [mean + std for mean, std in zip(y, g2_std)], alpha=0.5,
+                    label=f'Standard Deviation_{categories[1]}',
                     color='lightblue')
 
     ax.set_xlabel('session #')
@@ -105,7 +109,7 @@ def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwar
     ax.legend()
 
     if find_sig:
-        sig = utils.compare_lists_with_significance(padded_long, padded_short)
+        sig = utils.compare_lists_with_significance(padded_g1, padded_g2)
         for i in sig['high']:
             ax.annotate('***', xy=(x[i], y[i]), xytext=(x[i], 0), textcoords='data',
                         arrowprops=dict(arrowstyle="->"), rotation='vertical')
@@ -123,7 +127,7 @@ def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwar
                 ax.axhline(y=kwargs.get('opt_short'), color='b', linestyle='--', label='Optimal_short')
             if key == "adjusted_long":
                 y = kwargs.get('adjusted_long')
-                plt.step(x, y, where='post', color='lightcoral', label='adjusted_long_cohort')
+                plt.step(x_long, y, where='post', color='lightcoral', label='adjusted_long_cohort')
                 # ax.axhline(y=kwargs.get('adjusted_long'), color='lightcoral', linestyle='--',
                 #            label='adjusted_optimal_long')
             if key == "adjusted_short":
@@ -131,10 +135,10 @@ def plotCohortDiff(long, short, type, plot_patch, find_sig, plot_optimal, **kwar
                 #            label=
                 y = kwargs.get('adjusted_short')
                 plt.step(x, y, where='post', color='lightblue',label='adjusted_short_cohort')
-    return long_mean, short_mean
+    return g1_mean, g2_mean
 
 
-def plotAllAnimalWaiting(long_mice_list, long_session_mean, short_mice_list, short_session_mean ):
+def plot_all_animal_waiting(long_mice_list, long_session_mean, short_mice_list, short_session_mean ):
     fig, ax = plt.subplots()
     # Iterate through each sublist and plot it as a line
     for mice, animal_sessions in zip(long_mice_list, long_session_mean):
@@ -749,31 +753,6 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
                 plt.savefig(f'{mice[i].name}_holding_times_by_block.svg')
             plt.close()
 
-
-
-
-
-    # # not working
-    #     fig, ax = plt.subplots(figsize=(10, 5))
-    #     # print(f'number of good means {mice[i].holding_s_mean_good}')
-    #     plt.plot(mice[i].holding_s_mean_good, 'bo')
-    #     plt.plot(mice[i].holding_l_mean_good, 'ro')
-    #     ax.set_title(f'{mice[i].name} good trials holding times')
-    #     ax.set_xlabel("session")
-    #     ax.set_ylabel("holding time(s)")
-    #     ax.legend(['short', 'long'])
-    #     plt.savefig(f'{mice[i].name}_holding_times_good.svg')
-    #     plt.close()
-    #
-    #     fig, ax = plt.subplots(figsize=(10, 5))
-    #     ax.set_title(f'{mice[i].name} good trials holding - optimal time')
-    #     plt.plot(mice[i].opt_diff_s_good, 'b+')
-    #     plt.plot(mice[i].opt_diff_l_good, 'r+')
-    #     ax.legend(['short', 'long'])
-    #     ax.set_xlabel("session")
-    #     ax.set_ylabel("avg licking - optimal(s)")
-    #     plt.savefig(f'{mice[i].name} good trials avg licking - optimal.svg')
-    #     plt.close()
 def violins(mice, task_params, has_block, saving):
     if has_block:
         path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
