@@ -522,6 +522,8 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
     print(f'plotting and saving in {path}')
     for i in range(len(mice)):
         curr_animal_path = path + '\\' + mice[i].name
+        if not os.path.exists(curr_animal_path):
+            os.makedirs(curr_animal_path)
         if mice[i].default == 'long':
             curr_default = 'long'
             curr_change = 'short'

@@ -11,7 +11,10 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import statsmodels.api as sm
-
+#--------------------------------------------------#
+# simplified session class for no-block task
+# under constructions
+#--------------------------------------------------#
 def get_rewarded_perc(df, trial_num):
     rewarded_trial = df.loc[(df['key'] == 'reward') & (df['value'] == 1)]
     perc_rewarded_perf = len(rewarded_trial) / trial_num

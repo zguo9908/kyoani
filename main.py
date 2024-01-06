@@ -39,9 +39,6 @@ if __name__ == '__main__':
         with open('mice_data_change.pkl', 'wb') as file:
             # Serialize and save the Python object to the file
             pickle.dump(mice, file)
-
-        plots.run_all_single_animal_plot(mice, optimal_wait, task_params=task_params, has_block=has_block)
-
     else:
         utils.set_analysis_path(has_block, task_params)
         print("loading previously saved checkpoint")
@@ -49,10 +46,10 @@ if __name__ == '__main__':
             mice = pickle.load(file)
             beh.mice = mice
 
+    plots.run_all_single_animal_plot(mice, optimal_wait, task_params=task_params, has_block=has_block)
     if has_block:
         beh.test_block_diff()
     else:
         beh.find_group_diff(default_only=True)
-       # beh.PlotCohortDiff(False, 15)
-        beh.PlotCohortSessionPDEDiff()
+        #beh.find_group_diff(False, 15)
 

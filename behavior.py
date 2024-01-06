@@ -17,6 +17,9 @@ from scipy.stats import ttest_ind
 from scipy import stats
 from sklearn.neighbors import KernelDensity
 
+global groupings
+groupings = ['timescape', 'sex', 'single_housed']
+
 class BehaviorAnalysis:
     def get_exp_config(self):
         """Get experiment config from json"""
@@ -227,25 +230,11 @@ class BehaviorAnalysis:
                 grouped_data[group_key]['missing_perc'].append(merged_lists[6])
         return grouped_data
 
-    def find_group_diff(self, default_only, *args):
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + self.task_params
-        os.chdir(path)
-        print(f'plotting and saving in {path}')
-        # reverse_session = []
+    def get_groups(self, default_only, num_before_transition):
 
-        if len(args) > 0:
-            num_before_transition = args[0]
-        else:
-            num_before_transition = -1
-
-        groupings = ['timescape', 'sex', 'single_housed']
         groups_by_timescape = self.organize_mice_data(groupings[0], default_only, num_before_transition)
         groups_by_sex = self.organize_mice_data(groupings[1], default_only, num_before_transition)
         groups_by_housing = self.organize_mice_data(groupings[2], default_only, num_before_transition)
-
-        print(groups_by_timescape)
-        print(groups_by_sex)
-        print(groups_by_housing)
 
         def process_groups(groups, group_name, attributes):
             variables = {}
@@ -260,53 +249,70 @@ class BehaviorAnalysis:
                            'mean_reward_rate', 'bg_repeat', 'impulsive_perc', 'all_licks_by_session',
                            'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal']
         sex_attributes = ['mice_list', 'session_mean', 'session_nonimpulsive_mean', 'consumption_length',
-                           'mean_reward_rate', 'bg_repeat', 'impulsive_perc', 'all_licks_by_session',
-                           'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal']
+                          'mean_reward_rate', 'bg_repeat', 'impulsive_perc', 'all_licks_by_session',
+                          'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal']
         housing_attributes = ['mice_list', 'session_mean', 'session_nonimpulsive_mean', 'consumption_length',
-                           'mean_reward_rate', 'bg_repeat', 'impulsive_perc', 'all_licks_by_session',
-                           'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal']
+                              'mean_reward_rate', 'bg_repeat', 'impulsive_perc', 'all_licks_by_session',
+                              'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal']
 
         time_variables = process_groups(groups_by_timescape, 'timescape', time_attributes)
         sex_variables = process_groups(groups_by_sex, 'sex', sex_attributes)
         housing_variables = process_groups(groups_by_housing, 'single_housed', housing_attributes)
-
-
-        plots.plot_all_animal_waiting(time_variables['timescape_long_mice_list'],
-                                      time_variables['timescape_long_session_mean'],
-                                      time_variables['timescape_short_mice_list'],
-                                      time_variables['timescape_short_session_mean'])
-
         variables = [time_variables, sex_variables, housing_variables]
+        return variables
+
+    def find_group_diff(self, default_only, *args):
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + self.task_params
+        os.chdir(path)
+        print(f'plotting and saving in {path}')
+        # reverse_session = []
+
+        if len(args) > 0:
+            num_before_transition = args[0]
+        else:
+            num_before_transition = -1
+
+        variables = self.get_groups(default_only, num_before_transition)
+
+        plots.plot_all_animal_waiting(variables[0]['timescape_long_mice_list'],
+                                      variables[0]['timescape_long_session_mean'],
+                                      variables[0]['timescape_short_mice_list'],
+                                      variables[0]['timescape_short_session_mean'])
+
         plot_patch = False if default_only else True
         for i in range(len(groupings)):
             categories = utils.get_categories(groupings[i])
-            print(categories)
+            curr_path = path + "\\" + groupings[i] + "\\" + "default "+str(default_only)
+            if not os.path.exists(curr_path):
+                os.makedirs(curr_path)
+            os.chdir((curr_path))
+           # print(categories)
             plots.plot_group_diff(variables[i][f'{groupings[i]}_{categories[0]}_missing_perc'],
                                   variables[i][f'{groupings[i]}_{categories[1]}_missing_perc'],
                                   categories, 'perc', plot_patch, False, False,
                                   num_before_transition=num_before_transition)
-            plt.savefig(f'missing percentages by {groupings[i]}.svg')
+            plt.savefig(f'default only {default_only} missing percentages by {groupings[i]}.svg')
             plt.close()
 
             g1_bg_length_mean, g2_bg_length_mean = plots.plot_group_diff(
                 variables[i][f'{groupings[i]}_{categories[0]}_bg_length'],
                 variables[i][f'{groupings[i]}_{categories[1]}_bg_length'],
                 categories, 'time', plot_patch, False, False, num_before_transition=num_before_transition)
-            plt.savefig(f'background lengths by {groupings[i]}.svg')
+            plt.savefig(f'default only {default_only} background lengths by {groupings[i]}.svg')
             plt.close()
 
             plots.plot_group_diff(
                 variables[i][f'{groupings[i]}_{categories[0]}_bg_repeat_times'],
                 variables[i][f'{groupings[i]}_{categories[1]}_bg_repeat_times'],
                 categories, 'count', plot_patch, False, False, num_before_transition=num_before_transition)
-            plt.savefig(f'repeat trigger times by {groupings[i]}.svg')
+            plt.savefig(f'default only {default_only} repeat trigger times by {groupings[i]}.svg')
             plt.close()
 
             plots.plot_group_diff(variables[i][f'{groupings[i]}_{categories[0]}_mean_reward_rate'],
                                  variables[i][f'{groupings[i]}_{categories[1]}_mean_reward_rate'],
                                   categories, 'rate', plot_patch,
                                  True, False, num_before_transition=num_before_transition)
-            plt.savefig(f'mean reward rate by {groupings[i]}.svg')
+            plt.savefig(f'default only {default_only} mean reward rate by {groupings[i]}.svg')
             plt.close()
 
            # impuslive perc
@@ -314,7 +320,7 @@ class BehaviorAnalysis:
                                   variables[i][f'{groupings[i]}_{categories[1]}_impulsive_perc'],
                                   categories, 'perc', plot_patch,
                                  True, False, num_before_transition=num_before_transition)
-            plt.savefig(f'impulsive licking percentage by {groupings[i]}.svg')
+            plt.savefig(f'default only {default_only} impulsive licking percentage by {groupings[i]}.svg')
             plt.close()
 
             # bg repeats plot
@@ -322,17 +328,17 @@ class BehaviorAnalysis:
                                   variables[i][f'{groupings[i]}_{categories[1]}_bg_repeat_times'],
                                   categories, 'count', plot_patch,
                                  False, False, num_before_transition=num_before_transition)
-            plt.savefig(f'bg repeats for long vs short cohorts by {groupings[i]}.svg')
+            plt.savefig(f'default only {default_only} bg repeats for long vs short cohorts by {groupings[i]}.svg')
             plt.close()
 
-            print(variables[i][f'{groupings[i]}_{categories[0]}_adjusted_optimal'])
+           # print(variables[i][f'{groupings[i]}_{categories[0]}_adjusted_optimal'])
 
             g1_adjusted_optimal, g2_adjusted_optimal = \
                 plots.plot_group_diff(variables[i][f'{groupings[i]}_{categories[0]}_adjusted_optimal'],
                                       variables[i][f'{groupings[i]}_{categories[1]}_adjusted_optimal'],
                                       categories, 'time', plot_patch, False, False,
                                       num_before_transition = num_before_transition)
-            plt.savefig(f'adjusted optimal by {groupings[i]}.svg')
+            plt.savefig(f'default only {default_only} adjusted optimal by {groupings[i]}.svg')
             plt.close()
 
             g1_com_averages, g2_com_averages = \
@@ -340,7 +346,7 @@ class BehaviorAnalysis:
                                       variables[i][f'{groupings[i]}_{categories[1]}_consumption_length'],
                                       categories, 'time', plot_patch, False, False,
                                       num_before_transition = num_before_transition)
-            plt.savefig(f'consumption times long vs short cohorts by {groupings[i]}.svg')
+            plt.savefig(f'default only {default_only} consumption times long vs short cohorts by {groupings[i]}.svg')
             plt.close()
 
             # session plots
@@ -356,7 +362,7 @@ class BehaviorAnalysis:
                                       variables[i][f'{groupings[i]}_{categories[1]}_session_mean'],
                                       categories, 'time', plot_patch, True, True,
                                       num_before_transition=num_before_transition)
-            plt.savefig(f'session average for long vs short cohorts by {groupings[i]}.svg')
+            plt.savefig(f'default only {default_only} session average for long vs short cohorts by {groupings[i]}.svg')
             plt.close()
 
             # non_impulsive licks
@@ -372,46 +378,58 @@ class BehaviorAnalysis:
                                       variables[i][f'{groupings[i]}_{categories[1]}_session_nonimpulsive_mean'],
                                       categories, 'time', plot_patch, True, True,
                                       num_before_transition=num_before_transition)
-            plt.savefig(f'non impulsive session licks average for long vs short cohorts by {groupings[i]}.svg')
+            plt.savefig(f'default only {default_only} '
+                        f'non impulsive session licks average for long vs short cohorts by {groupings[i]}.svg')
             plt.close()
 
+        self.plot_group_pde(variables)
 
-    def PlotCohortSessionPDEDiff(self):
+
+    def plot_group_pde(self, variables):
         # Define the cohorts (e.g., 'cohort_s' and 'cohort_l')
-        cohorts = ['cohort_s', 'cohort_l']
-        combined_data = [self.all_licks_by_session_s, self.all_licks_by_session_l]
-        max_sessions = max(len(session_data) for session_data in combined_data)
-        max_sessions = max(max(len(data) for data in cohort) for cohort in combined_data)
-        print(f'number of max session {max_sessions}')
-        fig, axes = plt.subplots(max_sessions, 1, figsize=(4,100))
+        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + self.task_params
+        os.chdir(path)
+        for i in range(len(groupings)):
+            categories = utils.get_categories(groupings[i])
 
-        for session in range(max_sessions):
-            ax = axes[session]
+            combined_data = [variables[i][f'{groupings[i]}_{categories[0]}_all_licks_by_session'],
+                             variables[i][f'{groupings[i]}_{categories[1]}_all_licks_by_session']]
+           # max_sessions = max(len(session_data) for session_data in combined_data)
+            max_sessions = max(max(len(data) for data in cohort) for cohort in combined_data)
+            print(f'number of max session {max_sessions}')
+            fig, axes = plt.subplots(max_sessions, 1, figsize=(4, 100))
 
-            for cohort_index, cohort in enumerate(cohorts):
-                # Collect licking data for the current session and cohort
-                licking_data = []
-                for animal_data in combined_data[cohort_index]:
-                    if session < len(animal_data):
-                        licking_data.extend(animal_data[session])
+            for session in range(max_sessions):
+                ax = axes[session]
 
-                # Plot the KDE for the current cohort in the same subplot
-                if cohort == 'cohort_s':
-                    sns.kdeplot(licking_data, label='Short Cohort_kde', color='blue', ax=ax, common_norm=False, bw_adjust=.4)
-                    sns.histplot(licking_data, kde=False, label='Short Cohort_hist', color='lightblue', stat="density",
-                                 ax=ax, bins=50)
-                else:
-                    sns.kdeplot(licking_data, label='Long Cohort_kde', color='red', ax=ax, common_norm=False, bw_adjust=.4)
-                    sns.histplot(licking_data, kde=False, label='Long Cohort_hist', color='lightcoral', stat="density",
-                                 ax=ax, bins=50)
+                for cohort_index, cohort in enumerate(categories):
+                    # Collect licking data for the current session and cohort
+                    licking_data = []
+                    for animal_data in combined_data[cohort_index]:
+                        if session < len(animal_data):
+                            licking_data.extend(animal_data[session])
 
-            ax.set_title(f'Session {session + 1}')
-            ax.set_ylabel('Density')
+                    # Plot the KDE for the current cohort in the same subplot
+                    if cohort == categories[0]:
+                        sns.kdeplot(licking_data, label=f'{categories[0]} Cohort_kde', color='blue',
+                                    ax=ax, common_norm=False, bw_adjust=.4)
+                        sns.histplot(licking_data, kde=False, label=f'{categories[0]} Cohort_hist',
+                                     color='lightblue', stat="density",
+                                     ax=ax, bins=50)
+                    else:
+                        sns.kdeplot(licking_data, label=f'{categories[1]} Cohort_kde', color='red',
+                                    ax=ax, common_norm=False, bw_adjust=.4)
+                        sns.histplot(licking_data, kde=False, label=f'{categories[1]} Cohort_hist',
+                                     color='lightcoral', stat="density",
+                                     ax=ax, bins=50)
 
-        # Add a common legend to the last subplot
-        axes[-1].set_xlabel('Licking Time')
-        axes[-1].legend()
+                ax.set_title(f'Session {session + 1}')
+                ax.set_ylabel('Density')
 
-        plt.tight_layout()
-        plt.savefig('PDE for cohorts across sessions.svg')
-        plt.close()
+            # Add a common legend to the last subplot
+            axes[-1].set_xlabel('Licking Time')
+            axes[-1].legend()
+
+            plt.tight_layout()
+            plt.savefig(f'PDE for cohorts across sessions by {groupings[i]}.svg')
+            plt.close()
