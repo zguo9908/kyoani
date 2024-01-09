@@ -7,7 +7,7 @@ import pickle
 def main():
     pass
 
-
+# test changes
 global task_type, has_block, task_params
 task_type = "regular"
 has_block = False
