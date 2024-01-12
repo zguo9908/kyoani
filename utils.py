@@ -105,9 +105,9 @@ def set_analysis_path(has_block, task_params):
         import pwd
         username = pwd.getpwuid(os.getuid()).pw_name
         if username == 'rowancassidy':
-            path = os.path.normpath('/Users/rowancassidy/Lab/behavior_data') + "\\" + block + "\\" + task_params
+            path = os.path.normpath('/Users/rowancassidy/Lab/behavior_data') + "/" + block + "/" + task_params
         elif username == 'cecelia':
-            path = os.path.normpath('/Users/cecelia/Desktop/Shuler Lab/no_blocks') + "\\" + task_params
+            path = os.path.normpath('/Users/cecelia/Desktop/Shuler Lab/no_blocks') + "/" + task_params
         else:
             print("unknown user!")
     os.chdir(path)
@@ -130,9 +130,9 @@ def set_plotting_path(has_block, task_params):
         import pwd
         username = pwd.getpwuid(os.getuid()).pw_name
         if username == 'rowancassidy':
-            path = os.path.normpath('/Users/rowancassidy/Lab/figures') + "\\" + block + "\\" + task_params
+            path = os.path.normpath('/Users/rowancassidy/Lab/figures') + "/" + block + "/" + task_params
         elif username == 'cecelia':
-            path = os.path.normpath('/Users/cecelia/Desktop/Shuler Lab/figures') + "\\" + task_params
+            path = os.path.normpath('/Users/cecelia/Desktop/Shuler Lab/figures') + "/" + task_params
         else:
             print("unknown user!")
     return path
