@@ -514,11 +514,7 @@ def plotPairingLists(slist, llist, default, figuretype):
 
 def rawPlots(mice, optimal_wait, task_params, has_block, saving):
     #path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
-    if has_block:
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
-    else:
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
-    os.chdir(path)
+    path = utils.set_plotting_path(has_block, task_params)
     print(f'plotting and saving in {path}')
     for i in range(len(mice)):
         curr_animal_path = path + '\\' + mice[i].name
@@ -907,11 +903,7 @@ def violins(mice, task_params, has_block, saving):
 
 # plots about a particular session index (usually the last to see current stats)
 def plotSession(mice, session, task_params, has_block, saving):
-    if has_block:
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
-    else:
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
-    os.chdir(path)
+    path = utils.set_plotting_path(has_block, task_params)
     print(f'plotting and saving in {path}')
     violin_vars = []
     labels = []
