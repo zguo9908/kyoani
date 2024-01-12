@@ -816,7 +816,7 @@ def violins(mice, task_params, has_block, saving):
                 plt.savefig(f'{mice[i].name}_violin_var_split.svg', bbox_inches='tight')
             plt.close()
     else:
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
+        path = utils.set_plotting_path(has_block, task_params)
         os.chdir(path)
 
     print(f'plotting and saving in {path}')
