@@ -753,7 +753,7 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
 
 def violins(mice, task_params, has_block, saving):
     if has_block:
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
+        path = utils.set_plotting_path(has_block, task_params)
         os.chdir(path)
         violin_vars = []
         labels = []
