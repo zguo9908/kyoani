@@ -1,5 +1,6 @@
 import math
 import os
+from sys import platform
 
 import numpy as np
 from sympy.abc import x,y
@@ -90,11 +91,50 @@ def merge_lists(list1, list2):
 
 
 def set_analysis_path(has_block, task_params):
-    if has_block:
-        path = os.path.normpath(r'D:\behavior_data') + "\\" + "blocks" + "\\" + task_params
+
+    block = "blocks" if has_block else "no_blocks"
+
+    if os.name == 'nt':
+        print("running on a windows machine")
+        if has_block:
+            path = os.path.normpath(r'D:\behavior_data') + "\\" + block + "\\" + task_params
+        else:
+            path = os.path.normpath(r'D:\behavior_data') + "\\" + block + "\\" + task_params
     else:
-        path = os.path.normpath(r'D:\behavior_data') + "\\" + "no_blocks" + "\\" + task_params
+        print("running on a mac")
+        import pwd
+        username = pwd.getpwuid(os.getuid()).pw_name
+        if username == 'rowancassidy':
+            path = os.path.normpath('/Users/rowancassidy/Lab/behavior_data') + "\\" + block + "\\" + task_params
+        elif username == 'cecelia':
+            path = os.path.normpath('/Users/cecelia/Desktop/Shuler Lab/no_blocks') + "\\" + task_params
+        else:
+            print("unknown user!")
     os.chdir(path)
+    return path
+
+
+def set_plotting_path(has_block, task_params):
+    block = "blocks" if has_block else "no_blocks"
+
+    if os.name == 'nt':
+        print('saving on windows')
+        if has_block:
+            path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
+        else:
+            path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
+        os.chdir(path)
+        print(f'plotting and saving in {path}')
+    else:
+        print("saving on a mac")
+        import pwd
+        username = pwd.getpwuid(os.getuid()).pw_name
+        if username == 'rowancassidy':
+            path = os.path.normpath('/Users/rowancassidy/Lab/figures') + "\\" + block + "\\" + task_params
+        elif username == 'cecelia':
+            path = os.path.normpath('/Users/cecelia/Desktop/Shuler Lab/figures') + "\\" + task_params
+        else:
+            print("unknown user!")
     return path
 
 def get_categories(group):
