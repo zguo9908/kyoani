@@ -261,8 +261,8 @@ class BehaviorAnalysis:
         variables = [time_variables, sex_variables, housing_variables]
         return variables
 
-    def find_group_diff(self, default_only, *args):
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + self.task_params
+    def find_group_diff(self, has_block, task_params, default_only, *args):
+        path, user = utils.set_plotting_path(has_block, task_params)
         os.chdir(path)
         print(f'plotting and saving in {path}')
         # reverse_session = []
@@ -282,7 +282,11 @@ class BehaviorAnalysis:
         plot_patch = False if default_only else True
         for i in range(len(groupings)):
             categories = utils.get_categories(groupings[i])
-            curr_path = path + "\\" + groupings[i] + "\\" + "default "+str(default_only)
+            if user == 'ziyi':
+                curr_path = path + "\\" + groupings[i] + "\\" + "default "+str(default_only)
+            else:
+                curr_path = path + "/" + groupings[i] + "/" + "default "+str(default_only)
+
             if not os.path.exists(curr_path):
                 os.makedirs(curr_path)
             os.chdir((curr_path))
@@ -382,12 +386,12 @@ class BehaviorAnalysis:
                         f'non impulsive session licks average for long vs short cohorts by {groupings[i]}.svg')
             plt.close()
 
-        self.plot_group_pde(variables)
+        self.plot_group_pde(variables,has_block,task_params)
 
 
-    def plot_group_pde(self, variables):
+    def plot_group_pde(self, variables,has_block,task_params):
         # Define the cohorts (e.g., 'cohort_s' and 'cohort_l')
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + self.task_params
+        path, user = utils.set_plotting_path(has_block, task_params)
         os.chdir(path)
         for i in range(len(groupings)):
             categories = utils.get_categories(groupings[i])

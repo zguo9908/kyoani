@@ -50,6 +50,6 @@ if __name__ == '__main__':
     if has_block:
         beh.test_block_diff()
     else:
-        beh.find_group_diff(default_only=True)
+        beh.find_group_diff(has_block, task_params, default_only=True)
         #beh.find_group_diff(False, 15)
 

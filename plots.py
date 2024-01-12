@@ -15,16 +15,13 @@ import ruptures as rpt
 
 def run_all_single_animal_plot(mice, optimal_wait, task_params, has_block):
     rawPlots(mice, optimal_wait, task_params=task_params, has_block=has_block, saving=True)
-    violins(mice, task_params=task_params, has_block=has_block, saving=False)
+    #violins(mice, task_params=task_params, has_block=has_block, saving=False)
     plotSession(mice, -1, task_params=task_params, has_block=has_block, saving=True)
-    plot_all_animal_scatter(mice, has_block=has_block, task_params=task_params)
+    #plot_all_animal_scatter(mice, has_block=has_block, task_params=task_params)
     plot_change_points_test(mice, has_block=has_block, task_params=task_params)
 
 def plot_change_points_test(mice, has_block, task_params):
-    if has_block:
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
-    else:
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
+    path,_ = utils.set_analysis_path(has_block,task_params)
     os.chdir(path)
     print(f'plotting and saving in {path}')
     for i in range(len(mice)):
@@ -165,10 +162,7 @@ def adjust_color_intensity(color, factor):
     return (r + (1 - r) * (1 - factor), g + (1 - g) * (1 - factor), b + (1 - b) * (1 - factor))
 
 def plot_all_animal_scatter(mice, has_block, task_params):
-    if has_block:
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
-    else:
-        path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
+    path,_ = utils.set_plotting_path(has_block, task_params)
     os.chdir(path)
     print(f'plotting and saving in {path}')
     # Manually define specific colors for the red and blue families
