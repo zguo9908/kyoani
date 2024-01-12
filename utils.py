@@ -96,6 +96,7 @@ def set_analysis_path(has_block, task_params):
 
     if os.name == 'nt':
         print("running on a windows machine")
+        user = 'ziyi'
         if has_block:
             path = os.path.normpath(r'D:\behavior_data') + "\\" + block + "\\" + task_params
         else:
@@ -106,12 +107,14 @@ def set_analysis_path(has_block, task_params):
         username = pwd.getpwuid(os.getuid()).pw_name
         if username == 'rowancassidy':
             path = os.path.normpath('/Users/rowancassidy/Lab/behavior_data') + "/" + block + "/" + task_params
+            user = 'rowan'
         elif username == 'cecelia':
             path = os.path.normpath('/Users/cecelia/Desktop/Shuler Lab/no_blocks') + "/" + task_params
+            user = 'cecelia'
         else:
             print("unknown user!")
     os.chdir(path)
-    return path
+    return path, user
 
 
 def set_plotting_path(has_block, task_params):
@@ -119,6 +122,7 @@ def set_plotting_path(has_block, task_params):
 
     if os.name == 'nt':
         print('saving on windows')
+        user = 'ziyi'
         if has_block:
             path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
         else:
@@ -131,11 +135,13 @@ def set_plotting_path(has_block, task_params):
         username = pwd.getpwuid(os.getuid()).pw_name
         if username == 'rowancassidy':
             path = os.path.normpath('/Users/rowancassidy/Lab/figures') + "/" + block + "/" + task_params
+            user = 'rowan'
         elif username == 'cecelia':
             path = os.path.normpath('/Users/cecelia/Desktop/Shuler Lab/figures') + "/" + task_params
+            user = 'cecelia'
         else:
             print("unknown user!")
-    return path
+    return path, user
 
 def get_categories(group):
     categories = []

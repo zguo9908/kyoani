@@ -514,10 +514,13 @@ def plotPairingLists(slist, llist, default, figuretype):
 
 def rawPlots(mice, optimal_wait, task_params, has_block, saving):
     #path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
-    path = utils.set_plotting_path(has_block, task_params)
+    path, user = utils.set_plotting_path(has_block, task_params)
     print(f'plotting and saving in {path}')
     for i in range(len(mice)):
-        curr_animal_path = path + '\\' + mice[i].name
+        if user == "ziyi":
+            curr_animal_path = path + '\\' + mice[i].name
+        else:
+            curr_animal_path = path + '/' + mice[i].name
         if not os.path.exists(curr_animal_path):
             os.makedirs(curr_animal_path)
         if mice[i].default == 'long':
@@ -753,7 +756,7 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
 
 def violins(mice, task_params, has_block, saving):
     if has_block:
-        path = utils.set_plotting_path(has_block, task_params)
+        path, _ = utils.set_plotting_path(has_block, task_params)
         os.chdir(path)
         violin_vars = []
         labels = []
@@ -816,7 +819,7 @@ def violins(mice, task_params, has_block, saving):
                 plt.savefig(f'{mice[i].name}_violin_var_split.svg', bbox_inches='tight')
             plt.close()
     else:
-        path = utils.set_plotting_path(has_block, task_params)
+        path, _ = utils.set_plotting_path(has_block, task_params)
         os.chdir(path)
 
     print(f'plotting and saving in {path}')
@@ -903,15 +906,19 @@ def violins(mice, task_params, has_block, saving):
 
 # plots about a particular session index (usually the last to see current stats)
 def plotSession(mice, session, task_params, has_block, saving):
-    path = utils.set_plotting_path(has_block, task_params)
+    path, user = utils.set_plotting_path(has_block, task_params)
     print(f'plotting and saving in {path}')
     violin_vars = []
     labels = []
     # session reward rate
     for i in range(len(mice)):
         curr_animal_path = path + '\\' + mice[i].name
+        if user == "ziyi":
+            curr_animal_path = path + '\\' + mice[i].name
+        else:
+            curr_animal_path = path + '/' + mice[i].name
         os.chdir(curr_animal_path)
-        file_path = curr_animal_path + '\\' + os.listdir()[0]
+        #file_path = curr_animal_path + '\\' + os.listdir()[0]
 
         session_to_plot = mice[i].session_list[session]
 
