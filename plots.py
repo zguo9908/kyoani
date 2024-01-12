@@ -21,11 +21,14 @@ def run_all_single_animal_plot(mice, optimal_wait, task_params, has_block):
     plot_change_points_test(mice, has_block=has_block, task_params=task_params)
 
 def plot_change_points_test(mice, has_block, task_params):
-    path,_ = utils.set_analysis_path(has_block,task_params)
+    path, user = utils.set_analysis_path(has_block,task_params)
     os.chdir(path)
     print(f'plotting and saving in {path}')
     for i in range(len(mice)):
-        curr_animal_path = path + '\\' + mice[i].name
+        if user == 'ziyi':
+            curr_animal_path = path + '\\' + mice[i].name
+        else:
+            curr_animal_path = path + '/' + mice[i].name
         os.chdir(curr_animal_path)
         np.random.seed(42)  # for reproducibility
         merged_perf = utils.merge_lists(mice[i].holding_s_mean, mice[i].holding_l_mean)
