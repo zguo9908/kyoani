@@ -48,6 +48,46 @@
         {"timescape":{"default":["short","s"],
                        "change":["long","l"]},
           "sex":["F"],
+          "single_housed": ["F"]}],
+  "ZG030":[
+        {"timescape":{"default":["long","l"],
+                      "change":["short","s"]},
+          "sex":["M"],
+          "single_housed": ["F"]}],
+  "ZG031":[
+        {"timescape":{"default":["long","l"],
+                      "change":["short","s"]},
+          "sex":["M"],
+          "single_housed": ["F"]}],
+  "ZG032":[
+        {"timescape":{"default":["short","s"],
+                      "change":["long","l"]},
+          "sex":["M"],
+          "single_housed": ["F"]}],
+  "ZG033":[
+        {"timescape":{"default":["short","s"],
+                      "change":["long","l"]},
+          "sex":["M"],
+          "single_housed": ["F"]}],
+  "ZG034":[
+        {"timescape":{"default":["long","s"],
+                      "change":["short","l"]},
+          "sex":["F"],
+          "single_housed": ["F"]}],
+  "ZG035":[
+        {"timescape":{"default":["long","s"],
+                      "change":["short","l"]},
+          "sex":["F"],
+          "single_housed": ["F"]}],
+  "ZG036":[
+        {"timescape":{"default":["short","l"],
+                      "change":["long","s"]},
+          "sex":["F"],
+          "single_housed": ["F"]}],
+  "ZG037":[
+        {"timescape":{"default":["short","l"],
+                       "change":["long","s"]},
+          "sex":["F"],
           "single_housed": ["F"]}]
 }
 

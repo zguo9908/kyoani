@@ -127,7 +127,7 @@ def set_plotting_path(has_block, task_params):
             path = os.path.normpath(r'D:\figures\behplots') + "\\" + "blocks" + "\\" + task_params
         else:
             path = os.path.normpath(r'D:\figures\behplots') + "\\" + "no_blocks" + "\\" + task_params
-        os.chdir(path)
+#        os.chdir(path)
         print(f'plotting and saving in {path}')
     else:
         print("saving on a mac")
@@ -159,3 +159,12 @@ def is_float(value):
         return True
     except ValueError:
         return False
+
+def get_single_housing(task_params):
+    if task_params == 'param_v2':
+        has_single_housing = False
+        groupings_in_use = ['timescape', 'sex']
+    elif task_params == 'old_params':
+        has_single_housing = True
+        groupings_in_use = ['timescape', 'sex', 'single_housed']
+    return has_single_housing, groupings_in_use

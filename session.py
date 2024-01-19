@@ -246,7 +246,7 @@ def get_regression_results(lick_time, num_prev_licks=3):
     y = lick_df['lick_time']
 
     X = sm.add_constant(X)
-    model = sm.OLS(y, X).fit()
+    model = sm.OLS(y, X.astype(float)).fit()
 
     # Extracting coefficients, p-values, and confidence intervals
     coefficients = model.params
@@ -350,7 +350,8 @@ class Session:
         perc_rewarded_perf = getRewardedPerc(df, trial_num)
         all_licks = df.loc[(df['key'] == 'lick') & (df['value'] == 1)]
         all_lick_time = all_licks.curr_wait_time
-        coefficients, p_values, confidence_intervals = get_regression_results(all_lick_time, 3)
+        print(np.asarray(all_lick_time))
+       # coefficients, p_values, confidence_intervals = get_regression_results(all_lick_time, 3)
         curr_licks_during_wait = df.loc[
             (df['key'] == 'lick') & (df['state'] == 'in_wait') & (df['value'] == 1)]
         licks = curr_licks_during_wait.curr_wait_time
@@ -362,7 +363,7 @@ class Session:
         return blk_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
                mean_lick_diff, perc_rewarded_perf,  mean_consumption_length, mean_consumption_licks, \
                mean_next_background_length, mean_background_licks, perc_bout_into_background, \
-               coefficients, p_values, confidence_intervals
+               #coefficients, p_values, confidence_intervals
 
     def parseSessionStats(self):
         session_data = pd.read_csv(self.file_path, skiprows=3)
@@ -482,7 +483,7 @@ class Session:
 
             session_missed_perc, miss_trials, mean_prob_at_lick, licks, lick_mean, \
             mean_lick_diff, perc_rewarded_perf, mean_consumption_length, mean_consumption_licks, mean_next_background_length, \
-            mean_background_licks, perc_bout_into_background, coefficients, p_values, confidence_intervals\
+            mean_background_licks, perc_bout_into_background\
                 = self.process_selected_trials(
                 session_trial_num, session_data_cp, curr_opt_wait, timescape_type)
 

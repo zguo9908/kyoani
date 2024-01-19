@@ -35,7 +35,7 @@ class BehaviorAnalysis:
         self.has_block = has_block
         self.param_dict = param_dict
         self.optimal_wait = optimal_wait
-        self.path = utils.set_analysis_path(self.has_block, self.task_params)
+        self.path, _ = utils.set_analysis_path(self.has_block, self.task_params)
         self.animal_list = os.listdir()
         self.animal_num = len(self.animal_list)
         self.mice = [] # this stores the animal object
@@ -83,6 +83,7 @@ class BehaviorAnalysis:
                                  self.task_params, self.optimal_wait)
 
             self.mice.append(curr_animal)
+            print(self.path)
             default_path = self.path + "\\" + animal + "\\" + 'default'
             # print(f'Trying to change to directory: {default_path}')
             os.chdir(default_path)
@@ -95,21 +96,26 @@ class BehaviorAnalysis:
             curr_animal.reverse_index = len(default_sessions)
             # print(curr_animal.reverse_index)
             curr_animal.allSession(default_path, 'default', self.has_block)
-            print(f'processing all default sessions for mice {animal}')
+            print(f'processed all default sessions for mice {animal}')
 
             change_path = self.path + "\\" + animal + "\\" + 'change'
             # print(f'Trying to change to directory: {change_path}')
-            os.chdir(change_path)
-            # print(f'Current working directory: {os.getcwd()}')
-            change_session_list = os.listdir()
-            # filter all the items that are regular
-            change_sessions = [session for session in change_session_list if self.task_type in session]
-            curr_animal.change_sessions = change_sessions
-            curr_animal.change_session_num = len(change_sessions)
-            # print(f'change session numer is {curr_animal.change_session_num}')
+            if os.path.exists(change_path):
+                os.chdir(change_path)
+                # print(f'Current working directory: {os.getcwd()}')
+                change_session_list = os.listdir()
+                # filter all the items that are regular
+                change_sessions = [session for session in change_session_list if self.task_type in session]
+                curr_animal.change_sessions = change_sessions
+                curr_animal.change_session_num = len(change_sessions)
+                # print(f'change session numer is {curr_animal.change_session_num}')
 
-            curr_animal.allSession(change_path, 'change', self.has_block)
-            print(f'processing all change sessions for mice {animal}')
+                curr_animal.allSession(change_path, 'change', self.has_block)
+                print(f'processed all change sessions for mice {animal}')
+            else:
+                print("only default")
+                curr_animal.change_session_num = 0
+
             curr_animal.getMovingAvg(window_size=8)
             curr_animal.getBlockWaiting()
             curr_animal.getAdjustedOptimal()
@@ -230,7 +236,7 @@ class BehaviorAnalysis:
                 grouped_data[group_key]['missing_perc'].append(merged_lists[6])
         return grouped_data
 
-    def get_groups(self, default_only, num_before_transition):
+    def get_groups(self, default_only, num_before_transition, has_single_housing):
 
         groups_by_timescape = self.organize_mice_data(groupings[0], default_only, num_before_transition)
         groups_by_sex = self.organize_mice_data(groupings[1], default_only, num_before_transition)
@@ -257,7 +263,9 @@ class BehaviorAnalysis:
 
         time_variables = process_groups(groups_by_timescape, 'timescape', time_attributes)
         sex_variables = process_groups(groups_by_sex, 'sex', sex_attributes)
-        housing_variables = process_groups(groups_by_housing, 'single_housed', housing_attributes)
+        housing_variables = process_groups(groups_by_housing, 'single_housed', housing_attributes) \
+            if has_single_housing else None
+
         variables = [time_variables, sex_variables, housing_variables]
         return variables
 
@@ -271,8 +279,9 @@ class BehaviorAnalysis:
             num_before_transition = args[0]
         else:
             num_before_transition = -1
-
-        variables = self.get_groups(default_only, num_before_transition)
+        has_single_housing, groupings_in_use = utils.get_single_housing(task_params)
+        variables = self.get_groups(default_only, num_before_transition, has_single_housing)
+        variables = [var for var in variables if var is not None]
 
         plots.plot_all_animal_waiting(variables[0]['timescape_long_mice_list'],
                                       variables[0]['timescape_long_session_mean'],
@@ -280,7 +289,7 @@ class BehaviorAnalysis:
                                       variables[0]['timescape_short_session_mean'])
 
         plot_patch = False if default_only else True
-        for i in range(len(groupings)):
+        for i in range(len(groupings_in_use)):
             categories = utils.get_categories(groupings[i])
             if user == 'ziyi':
                 curr_path = path + "\\" + groupings[i] + "\\" + "default "+str(default_only)
@@ -393,7 +402,8 @@ class BehaviorAnalysis:
         # Define the cohorts (e.g., 'cohort_s' and 'cohort_l')
         path, user = utils.set_plotting_path(has_block, task_params)
         os.chdir(path)
-        for i in range(len(groupings)):
+        has_single_housing, groupings_in_use = utils.get_single_housing(task_params)
+        for i in range(len(groupings_in_use)):
             categories = utils.get_categories(groupings[i])
 
             combined_data = [variables[i][f'{groupings[i]}_{categories[0]}_all_licks_by_session'],

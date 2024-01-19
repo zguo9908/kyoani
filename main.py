@@ -7,15 +7,21 @@ import pickle
 def main():
     pass
 
-# test changes
 global task_type, has_block, task_params
 task_type = "regular"
 has_block = False
-task_params = "old_params"
+#task_params = "old_params"
+task_params = "param_v2"
 
 global m1, p1, m2, p2, bg1, bg2
-m1 = 1
-m2 = 3
+# old params
+# m1 = 1
+# m2 = 3
+
+# version 2 params
+m1 = 1.2
+m2 = 3.3
+
 p1 = p2 = 0.9
 bg1 = bg2 = 2
 
@@ -32,17 +38,19 @@ if __name__ == '__main__':
     beh = BehaviorAnalysis("exp1", optimal_wait, params_dict, task_type=task_type,
                            has_block=has_block, task_params=task_params)
     if need_checkpoint:
-        mice = beh.process_all_animals(["ZG023", "ZG026", "ZG027", "ZG022", "ZG021",
-                                        "ZG020", "ZG024", "ZG025", 'ZG028', 'ZG029'])
+       # mice = beh.process_all_animals(["ZG023", "ZG026", "ZG027", "ZG022", "ZG021",
+        #                                "ZG020", "ZG024", "ZG025", 'ZG028', 'ZG029'])
+        mice = beh.process_all_animals(["ZG030", "ZG031", "ZG034", "ZG035",
+                                         "ZG033", "ZG032", "ZG036", 'ZG037'])
         utils.set_analysis_path(has_block, task_params)
         # lick value == 1 being change
-        with open('mice_data_change.pkl', 'wb') as file:
+        with open('mice_data_param2.pkl', 'wb') as file:
             # Serialize and save the Python object to the file
             pickle.dump(mice, file)
     else:
         utils.set_analysis_path(has_block, task_params)
         print("loading previously saved checkpoint")
-        with open('mice_data_change.pkl', 'rb') as file:
+        with open('mice_data_param2.pkl', 'rb') as file:
             mice = pickle.load(file)
             beh.mice = mice
 

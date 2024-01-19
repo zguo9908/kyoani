@@ -21,7 +21,7 @@ def run_all_single_animal_plot(mice, optimal_wait, task_params, has_block):
     plot_change_points_test(mice, has_block=has_block, task_params=task_params)
 
 def plot_change_points_test(mice, has_block, task_params):
-    path, user = utils.set_analysis_path(has_block,task_params)
+    path, user = utils.set_plotting_path(has_block, task_params)
     os.chdir(path)
     print(f'plotting and saving in {path}')
     for i in range(len(mice)):
@@ -412,12 +412,13 @@ def plotHoldingWithError(mouse, default, optimal_wait):
             plt.plot(x, mouse.holding_s_median, 'bs', markersize=8, markerfacecolor='none')
             plt.plot(x, mouse.holding_s_mean, 'bo', label='Short - mean', markersize=8, markerfacecolor='none')
         if len(mouse.holding_l_std) > 0:
-            x = range(1, sum(1 for x in mouse.holding_s_mean if not math.isnan(x)) + 1)
+            x = range(1, sum(1 for x in mouse.holding_l_mean if not math.isnan(x)) + 1)
             error_low = [max(0, float(median) - float(q25)) for median, q25 in
                          zip(mouse.holding_l_median, mouse.holding_l_q25)]
             error_high = [max(0, float(q75) - float(median)) for q75, median in
                           zip(mouse.holding_l_q75, mouse.holding_l_median)]
-
+            print(len(x))
+            print(mouse.holding_l_median)
             plt.errorbar(x, mouse.holding_l_median, yerr=[error_low, error_high], fmt='o', color='red',
                          label='Long - median', capsize=5, elinewidth=2, barsabove=True, errorevery=1)
             plt.plot(x, mouse.holding_l_median, 'rs', markersize=8, markerfacecolor='none')
