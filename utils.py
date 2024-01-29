@@ -1,7 +1,7 @@
 import math
 import os
 from sys import platform
-
+import pandas as pd
 import numpy as np
 from sympy.abc import x,y
 from sympy import *
@@ -9,15 +9,17 @@ from scipy.stats import ttest_ind, expon
 from scipy import stats
 
 def get_optimal_time(m,p,bg):
-   # print(f'current adjusted backrgound is {bg}')
+    print(f'current adjusted backrgound is {bg}')
     f = (1 - exp(-(1/m)*(x-bg)))*p
     k = np.linspace(bg, 30, 1600) # range of x
     ml1 = dict()
     for i in k:
         total_time = i
-        ml1[i]= f.subs(x,i)/total_time
-   # print(max(ml1, key=ml1.get))
-    optimal_time = max(ml1, key=ml1.get) -bg
+        ml1[i] = f.subs(x, i)/total_time
+    print(ml1)
+    # print(max(ml1, key=ml1.get))
+    # print(bg)
+    optimal_time = max(ml1, key=ml1.get) - bg
     return optimal_time
 
 def get_optimal_time_expon(time_array, m,p,bg):
@@ -168,3 +170,27 @@ def get_single_housing(task_params):
         has_single_housing = True
         groupings_in_use = ['timescape', 'sex', 'single_housed']
     return has_single_housing, groupings_in_use
+
+
+def get_exp_params(task_params):
+    if task_params == 'param_v2':
+        exp_params = [3.3, 1.2]
+    elif task_params == 'old_params':
+        exp_params = [3,1]
+    return exp_params
+
+
+def substitute_nan(lst):
+    if not isinstance(lst, list):
+        raise ValueError("Input must be a list")
+
+    last_non_nan = None
+
+    for i, element in enumerate(lst):
+        if not pd.isna(element):
+            last_non_nan = element
+        elif last_non_nan is not None:
+            lst[i] = last_non_nan
+
+    return lst
+
