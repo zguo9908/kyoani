@@ -130,6 +130,8 @@ class Animal:
         self.mean_session_reward_rate = []
         self.reverse_index = -1
         self.session_adjusted_optimal = []
+        self.loc_trials_rewarded_s = []
+        self.loc_trials_rewarded_l = []
 
 
 

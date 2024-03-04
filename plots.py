@@ -11,14 +11,15 @@ from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
 import matplotlib.colors as mcolors
 import utils
+import random
 import ruptures as rpt
 
 def run_all_single_animal_plot(mice, optimal_wait, task_params, has_block):
     rawPlots(mice, optimal_wait, task_params=task_params, has_block=has_block, saving=True)
-    #violins(mice, task_params=task_params, has_block=has_block, saving=False)
+    violins(mice, task_params=task_params, has_block=has_block, saving=False)
     plotSession(mice, -1, task_params=task_params, has_block=has_block, saving=True)
-    #plot_all_animal_scatter(mice, has_block=has_block, task_params=task_params)
-    plot_change_points_test(mice, has_block=has_block, task_params=task_params)
+    plot_all_animal_scatter(mice, has_block=has_block, task_params=task_params)
+   #plot_change_points_test(mice, has_block=has_block, task_params=task_params)
 
 def plot_change_points_test(mice, has_block, task_params):
     path, user = utils.set_plotting_path(has_block, task_params)
@@ -161,7 +162,7 @@ def plot_all_animal_waiting(long_mice_list, long_session_mean, short_mice_list, 
 def adjust_color_intensity(color, factor):
     r, g, b = mcolors.to_rgb(color)
     # Ensure color gets denser for later sessions
-    factor = factor ** 2  # Adjust this exponent to control the gradient
+    factor = factor ** 1.12 # Adjust this exponent to control the gradient
     return (r + (1 - r) * (1 - factor), g + (1 - g) * (1 - factor), b + (1 - b) * (1 - factor))
 
 def plot_all_animal_scatter(mice, has_block, task_params):
@@ -174,7 +175,10 @@ def plot_all_animal_scatter(mice, has_block, task_params):
     blue_family_colors = ['#00FFFF', '#87CEEB', '#4169E1', '#0047AB',
                           '#000080']  # Cyan, Sky Blue, Royal Blue, Cobalt, Navy
 
-    fig, ax = plt.subplots()
+
+    fig, ax = plt.subplots(figsize=(8,8))
+    plt.xticks(np.arange(0, 6, 1))  # Adjust the x-ticks range as needed
+    plt.yticks(np.arange(0, 15, 1))  # Adjust the y-ticks range as needed
     legend_handles = []  # For custom legend
     # Initialize a color counter for each group
     color_counter_short = 0
@@ -190,7 +194,7 @@ def plot_all_animal_scatter(mice, has_block, task_params):
             color_counter_short += 1
 
             # Your existing code to set the data for short group
-            session_avg = mouse.holding_s_mean[:mouse.default_session_num]
+            session_avg = mouse.holding_s_mean[20:mouse.default_session_num]
 
         elif mouse.default == 'long':
             # Assign a color from the long (red) family
@@ -198,30 +202,67 @@ def plot_all_animal_scatter(mice, has_block, task_params):
             color_counter_long += 1
 
             # Your existing code to set the data for long group
-            session_avg = mouse.holding_l_mean[:mouse.default_session_num]
+            session_avg = mouse.holding_l_mean[20:mouse.default_session_num]
 
-        adjusted_optimal_default = mouse.session_adjusted_optimal[:mouse.default_session_num]
-            # Adjust the color intensity based on the session number for gradient effect
-        for session_num in range(mouse.default_session_num):
+        adjusted_optimal_default = mouse.session_adjusted_optimal[20:mouse.default_session_num]
+        #     # Adjust the color intensity based on the session number for gradient effect
+        # for session_num in range(mouse.default_session_num):
+        #     color_intensity = (session_num + 1) / mouse.default_session_num
+        #     adjusted_color = adjust_color_intensity(color, color_intensity)
+        #
+        #     plt.scatter(adjusted_optimal_default[session_num], session_avg[session_num],
+        #                 color=adjusted_color, edgecolors='black')
+        # legend_handles.append(mpatches.Patch(color=color, label=mouse.name))
+
+        jitter = 0.1
+        point_size = 32
+
+        # Adjust the color intensity based on the session number for gradient effect
+        for session_num in range(len(adjusted_optimal_default)):
             color_intensity = (session_num + 1) / mouse.default_session_num
             adjusted_color = adjust_color_intensity(color, color_intensity)
 
-            plt.scatter(adjusted_optimal_default[session_num], session_avg[session_num],
-                        color=adjusted_color, edgecolors='black')
+            # Jittering the x and y coordinates
+            x_jitter = adjusted_optimal_default[session_num] + random.uniform(-jitter, jitter)
+            y_jitter = session_avg[session_num] + random.uniform(-jitter, jitter)
+
+            plt.scatter(x_jitter, y_jitter, color=adjusted_color, edgecolors='black', s=point_size)
+
         legend_handles.append(mpatches.Patch(color=color, label=mouse.name))
 
-    x_d = np.linspace(0, 10, 1000)  # Adjust range as needed
+    x_d = np.linspace(0, 6, 1000)  # Adjust range as needed
     y_d = x_d  # Diagonal line where y equals x
 
     # Plotting the diagonal line
     plt.plot(x_d, y_d, label='y = x')
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.legend(handles=legend_handles, bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.xticks(np.arange(0, 10, 1))  # Adjust range and interval as needed
-    plt.yticks(np.arange(0, 10, 1))  # Adjust range and interval as needed
+    # Creating legend handles for red colors and blue colors
+    # Creating legend handles for red colors and blue colors
+    red_handles = [mpatches.Patch(color='red', label='Long Cohort')]
+    blue_handles = [mpatches.Patch(color='blue', label='Short Cohort')]
+
+    # Plotting the legend with two columns
+    plt.legend(handles=red_handles + blue_handles, bbox_to_anchor=(1.05, 1), loc='upper left', ncol=2)
+
+    # Adding legend for individual animals
+    animal_handles = [
+        mpatches.Patch(color='#FF00FF', label='Mouse1'),  # Magenta
+        mpatches.Patch(color='#FFC0CB', label='Mouse2'),  # Pink
+        mpatches.Patch(color='#F08080', label='Mouse3'),  # Light Coral
+        mpatches.Patch(color='#FA8072', label='Mouse4'),  # Salmon
+        mpatches.Patch(color='#DC143C', label='Mouse5'),  # Crimson
+        mpatches.Patch(color='#00FFFF', label='Mouse6'),  # Cyan
+        mpatches.Patch(color='#87CEEB', label='Mouse7'),  # Sky Blue
+        mpatches.Patch(color='#4169E1', label='Mouse8'),  # Royal Blue
+        mpatches.Patch(color='#0047AB', label='Mouse9'),  # Cobalt
+        mpatches.Patch(color='#000080', label='Mouse10')  # Navy
+    ]
+
+    plt.legend(handles=animal_handles, bbox_to_anchor=(1.05, 0.5), loc='center left', title='Individual Animals')
+    plt.tight_layout()  # Adjust layout for better appearance
     # Set labels and title
-    plt.xlabel('adjusted optimal')
-    plt.ylabel('session avg')
+    plt.xlabel('adjusted optimal leaving time (s)')
+    plt.ylabel('session avg leaving time (s)')
     plt.savefig(f'all animal color mean vs adjusted.svg')
     plt.close()
 
@@ -553,6 +594,29 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         ax.set_xlabel("session number")
         ax.set_ylabel("holding time(s)")
         plt.savefig(f'{mice[i].name}_non_impulsive_licks.svg')
+        plt.close()
+
+        # reward binary, with session indices
+        fig, ax = plt.subplots(figsize=(30, 5))
+        # print(f's sessions lick index {(mice[i].all_holding_s_index)}')
+        if curr_default == "long":
+            mice[i].all_holding_s_index = [x + mice[i].all_holding_l_index[-1] for x in mice[i].all_holding_s_index]
+            loc_trials_rewarded = mice[i].loc_trials_rewarded_l + mice[i].loc_trials_rewarded_s
+        if curr_default == "short":
+            mice[i].all_holding_l_index = [x + mice[i].all_holding_s_index[-1] for x in mice[i].all_holding_l_index]
+            loc_trials_rewarded = mice[i].moving_average_s + mice[i].moving_average_l
+        plt.plot(loc_trials_rewarded)
+        for j in range(len(mice[i].all_holding_s_index)):
+            plt.axvline(x=mice[i].all_holding_s_index[j], color='b')
+        for j in range(len(mice[i].all_holding_l_index)):
+            plt.axvline(x=mice[i].all_holding_l_index[j], color='r')
+        ax.set_title(f'{mice[i].name} loc_trials_rewarded')
+        ax.set_xlabel("trial")
+        ax.set_ylabel("rewarded")
+        ax.legend(['short', 'long'])
+        plt.axis([0, 2000, 0, 1])
+        if saving:
+            plt.savefig(f'{mice[i].name}_reward_history.svg')
         plt.close()
 
         #---------------------holding mean - optimal-----------------------#
