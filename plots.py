@@ -600,21 +600,21 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         fig, ax = plt.subplots(figsize=(30, 5))
         # print(f's sessions lick index {(mice[i].all_holding_s_index)}')
         if curr_default == "long":
-            mice[i].all_holding_s_index = [x + mice[i].all_holding_l_index[-1] for x in mice[i].all_holding_s_index]
+            mice[i].session_trial_index_s = [x + mice[i].session_trial_num_l[-1] for x in mice[i].session_trial_num_s]
             loc_trials_rewarded = mice[i].loc_trials_rewarded_l + mice[i].loc_trials_rewarded_s
         if curr_default == "short":
-            mice[i].all_holding_l_index = [x + mice[i].all_holding_s_index[-1] for x in mice[i].all_holding_l_index]
+            mice[i].session_trial_index_l = [x + mice[i].session_trial_num_s[-1] for x in mice[i].session_trial_num_l]
             loc_trials_rewarded = mice[i].moving_average_s + mice[i].moving_average_l
         plt.plot(loc_trials_rewarded)
-        for j in range(len(mice[i].all_holding_s_index)):
-            plt.axvline(x=mice[i].all_holding_s_index[j], color='b')
-        for j in range(len(mice[i].all_holding_l_index)):
-            plt.axvline(x=mice[i].all_holding_l_index[j], color='r')
+        for j in range(len(mice[i].session_trial_index_s)):
+            plt.axvline(x=mice[i].session_trial_index_s[j], color='b')
+        for j in range(len(mice[i].session_trial_index_l)):
+            plt.axvline(x=mice[i].session_trial_index_l[j], color='r')
         ax.set_title(f'{mice[i].name} loc_trials_rewarded')
         ax.set_xlabel("trial")
         ax.set_ylabel("rewarded")
         ax.legend(['short', 'long'])
-        plt.axis([0, 2000, 0, 1])
+        plt.axis([0, 15000, 0, 1])
         if saving:
             plt.savefig(f'{mice[i].name}_reward_history.svg')
         plt.close()

@@ -369,7 +369,7 @@ class Session:
         else:
             session_data['total_volume_received'] = session_data['total_reward']*10
         self.session_reward_rate = session_data['total_volume_received']/(session_data['session_time'])
-
+        self.session_trial_num = session_data["session_trial_num"].max()
         # print(session_data['total_volume_received'].iloc[-1])
         # print(session_data['session_time'].iloc[-1])
         # print(f'mean of session reward rate is {self.session_reward_rate.mean()}')
@@ -468,6 +468,8 @@ class Session:
             session_data_cp['next_state'] = session_data_cp['state'].shift(-1)
 
             session_trial_num = max(session_data_cp.session_trial_num) - min(session_data_cp.session_trial_num) + 1
+
+
             # session_missed_perc, miss_trials = getMissedTrials(session_data_cp, session_trial_num)
 
             session_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats, mean_background_length = \
@@ -498,6 +500,8 @@ class Session:
             # all session data for non-block, updates should be done in updates function!
            # print(len(licks_good))
             if timescape_type == 's':
+                self.animal.session_trial_num_s.append(self.animal.session_trial_num_s[-1] + session_trial_num)
+                print(f'current session trial num index are {self.animal.session_trial_num_s}')
                 self.animal.all_holding_s.extend(licks)
                 self.animal.all_holding_s_list.append(licks)
                 self.animal.all_holding_s_index.append(len(self.animal.all_holding_s))
@@ -532,6 +536,8 @@ class Session:
                 else:
                     self.miss_perc_s.append(np.nan)
             else:
+                self.animal.session_trial_num_l.append(self.animal.session_trial_num_l[-1] + session_trial_num)
+                print(f'current session trial num index are {self.animal.session_trial_num_l}')
                 self.animal.all_holding_l.extend(licks)
                 self.animal.all_holding_l_list.append(licks)
                 self.animal.all_holding_l_index.append(len(self.animal.all_holding_l))

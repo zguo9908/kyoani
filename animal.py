@@ -24,6 +24,10 @@ class Animal:
         self.default_sessions = []
         self.change_sessions = []
 
+        self.session_trial_num_s = [0]
+        self.session_trial_num_l = [0]
+        self.session_trial_index_s = []
+        self.session_trial_index_l = []
         # mean of holding during blocks or sessions of a timescape type
         self.holding_s_mean = []
         self.holding_l_mean = []
