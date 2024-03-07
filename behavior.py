@@ -84,7 +84,12 @@ class BehaviorAnalysis:
 
             self.mice.append(curr_animal)
             print(self.path)
-            default_path = self.path + "\\" + animal + "\\" + 'default'
+
+            if os.name == 'nt':
+                default_path = self.path + "\\" + animal + "\\" + 'default'
+            else:
+                default_path = self.path + "/" + animal + "/" + 'default'
+            # default_path = self.path + "\\" + animal + "\\" + 'default'
             # print(f'Trying to change to directory: {default_path}')
             os.chdir(default_path)
             # print(f'Current working directory: {os.getcwd()}')
@@ -98,7 +103,10 @@ class BehaviorAnalysis:
             curr_animal.allSession(default_path, 'default', self.has_block)
             print(f'processed all default sessions for mice {animal}')
 
-            change_path = self.path + "\\" + animal + "\\" + 'change'
+            if os.name == 'nt':
+                change_path = self.path + "\\" + animal + "\\" + 'change'
+            else:
+                change_path = self.path + "/" + animal + "/" + 'change'
             # print(f'Trying to change to directory: {change_path}')
             if os.path.exists(change_path):
                 os.chdir(change_path)

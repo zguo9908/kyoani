@@ -32,12 +32,12 @@ print(f'optimal wait time for long timescape is {optimal_wait_long}')
 optimal_wait = [optimal_wait_short, optimal_wait_long]
 
 params_dict = {"m1": m1, "p1": p1, "bg1": bg1, "m2": m2, "p2": p2, "bg2": bg2}
-need_checkpoint = False
+need_checkpoint = True
 if __name__ == '__main__':
     beh = BehaviorAnalysis("exp1", optimal_wait, params_dict, task_type=task_type,
                            has_block=has_block, task_params=task_params)
     if need_checkpoint:
-        mice = beh.process_all_animals(["ZG023", "ZG026", "ZG027", "ZG022", "ZG021",
+        mice = beh.process_all_animals(["ZG026", "ZG023", "ZG027", "ZG022", "ZG021",
                                        "ZG020", "ZG024", "ZG025", 'ZG028', 'ZG029'])
         # mice = beh.process_all_animals(["ZG030", "ZG031", "ZG034","ZG035",
         #                                  "ZG033", "ZG032", "ZG036", 'ZG037'])

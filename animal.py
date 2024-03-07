@@ -136,6 +136,10 @@ class Animal:
         self.session_adjusted_optimal = []
         self.loc_trials_rewarded_s = []
         self.loc_trials_rewarded_l = []
+        self.loc_trials_missed_s = []
+        self.loc_trials_missed_l = []
+        self.loc_licks_rewarded_s = []
+        self.loc_licks_rewarded_l = []
 
 
 
@@ -162,7 +166,14 @@ class Animal:
             curr_session.updateSessionStats()
             # self.session_index.append(self.all)
             self.session_list.append(curr_session)
-
+        print(f'{self.name} has equal number of short licks and trials '
+              f'{len(self.all_holding_s) == len(self.loc_licks_rewarded_s)}')
+        print(len(self.all_holding_s))
+        print(len(self.loc_licks_rewarded_s))
+        print(f'{self.name} has equal number of long licks and trials '
+              f'{len(self.all_holding_l) == len(self.loc_licks_rewarded_l)}')
+        print(len(self.all_holding_l))
+        print(len(self.loc_licks_rewarded_l))
     # print(f'std for l session {self.holding_l_std}')
     # print(self.holding_s_std)
 
@@ -205,8 +216,8 @@ class Animal:
     def getAdjustedOptimal(self):
         self.session_adjusted_optimal = [0]*len(self.mean_consumption_length)
         exp_params = utils.get_exp_params(self.task_params)
-        print(f'mean consumption length is {self.mean_consumption_length}')
-        print(f'mean background length is {self.mean_background_length_l}')
+        # print(f'mean consumption length is {self.mean_consumption_length}')
+        # print(f'mean background length is {self.mean_background_length_l}')
         consum_stats = utils.substitute_nan(self.mean_consumption_length)
         if self.default == 'long':
             for i in range(self.default_session_num):
