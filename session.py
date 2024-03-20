@@ -13,6 +13,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import statsmodels.api as sm
 
+import utils
+
 
 def generate_binary_reward_list(total_trials, rewarded_trials):
     binary_rewards = [0] * total_trials  # Initialize a list of zeros for all trials
@@ -345,7 +347,7 @@ class Session:
         self.mean_background_length_from_consumption_l = []
         self.mean_background_lick_from_consumption_l = []
 
-    def process_selected_trials(self, trial_num, df, curr_opt_wait, timescape_type):
+    def process_selected_trials(self, trial_num, df, curr_opt_wait):
         # this function will process selected trials dataframe
         # within block or within a no-block session
         # can be all trials or just the good trials.
@@ -385,16 +387,16 @@ class Session:
             [value for index, value in enumerate(loc_trials_missed) if index not in lick_not_completed]
         loc_licks_rewarded = [filtered_loc_trials_rewarded[i] for i in range(len(filtered_loc_trials_rewarded))
                               if filtered_loc_trials_missed[i] != 1]
-        if sum(filtered_loc_trials_missed) != len(trials_missed):
-            print('somehow missed trials get thrown out')
-        # filtered_loc_licks_rewarded = \
-        #     [value for index, value in enumerate(loc_licks_rewarded) if index not in lick_not_completed]
-
-        if len(loc_licks_rewarded) != len(licks):
-            print("The lengths of filtered_loc_licks_rewarded and licks are not equal.")
-            # You can also print the lengths for further investigation
-            print("Length of filtered_loc_licks_rewarded:", len(loc_licks_rewarded))
-            print("Length of licks:", len(licks))
+        # if sum(filtered_loc_trials_missed) != len(trials_missed):
+        #     print('somehow missed trials get thrown out')
+        # # filtered_loc_licks_rewarded = \
+        # #     [value for index, value in enumerate(loc_licks_rewarded) if index not in lick_not_completed]
+        #
+        # if len(loc_licks_rewarded) != len(licks):
+        #     print("The lengths of filtered_loc_licks_rewarded and licks are not equal.")
+        #     # You can also print the lengths for further investigation
+        #     print("Length of filtered_loc_licks_rewarded:", len(loc_licks_rewarded))
+        #     print("Length of licks:", len(licks))
         # print(f'this are the trials where its not counted as a trial?! {not_in_completed}')
         # # print(loc_licks_rewarded)
         print(f'all trials add up {len(licks) == len(loc_licks_rewarded)}')
@@ -512,9 +514,10 @@ class Session:
 
         else:
             print(f'processing session {self.file_path} without blocks')
+
             session_data_cp = session_data.copy()
             session_data_cp['next_state'] = session_data_cp['state'].shift(-1)
-
+            self.animal.session_param.append(session_data.mean_reward_time.iloc[0])
             # session_trial_num = max(session_data_cp.session_trial_num) + 1
 
             # print('=======================this is the session data feed in for {self.file_path}===============================')
@@ -525,8 +528,8 @@ class Session:
                 getBackgroundLicks(session_data_cp, self.session_trial_num)
 
             session_mean_reward_time = int(session_data.mean_reward_time.iloc[0])
-            curr_opt_wait, timescape_type = self.getTimescapeType(session_mean_reward_time)
-
+            timescape_type = self.getTimescapeType(session_mean_reward_time)
+            curr_opt_wait = utils.get_optimal_time(session_mean_reward_time, 0.9, 2)
 
             session_missed_perc, miss_trials, loc_trials_missed, \
             mean_prob_at_lick, licks, lick_mean, \
@@ -534,7 +537,7 @@ class Session:
             mean_consumption_length, mean_consumption_licks, mean_next_background_length, \
             mean_background_licks, perc_bout_into_background\
                 = self.process_selected_trials(
-                self.session_trial_num, session_data_cp, curr_opt_wait, timescape_type)
+                self.session_trial_num, session_data_cp, curr_opt_wait)
 
             session_missed_perc_good, miss_trials_good, loc_trials_missed_good, \
             mean_prob_at_lick_good, licks_good, lick_mean_good, \
@@ -542,8 +545,7 @@ class Session:
             mean_consumption_length_good, mean_consumption_licks_good, \
             mean_next_background_length_good, mean_background_licks_good, perc_bout_into_background_good = \
                                                         self.process_selected_trials(good_trials_num,
-                                                                                     trials_good, curr_opt_wait,
-                                                                                     timescape_type)
+                                                                                     trials_good, curr_opt_wait)
             self.animal.mean_consumption_length.append(mean_consumption_length)
             self.animal.mean_consumption_licks.append(mean_consumption_licks)
             self.animal.mean_session_reward_rate.append(self.session_reward_rate.mean())
@@ -632,15 +634,12 @@ class Session:
                 else:
                     self.miss_perc_l.append(np.nan)
     def getTimescapeType(self, mean_reward_time):
-        if mean_reward_time == 3:
-            opt_wait = self.optimal_wait[1]
+        if mean_reward_time >= 3:
             timescape_type = 'l'
-        elif mean_reward_time == 1:
-            opt_wait = self.optimal_wait[0]
-            timescape_type = 's'
         else:
-            raise Warning("wrong mean reward time")
-        return opt_wait, timescape_type
+            timescape_type = 's'
+
+        return timescape_type
 
     def blkVarianceAnalysis(self, licks):
         blk_start_trials = licks[:self.blk_window]

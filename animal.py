@@ -140,7 +140,7 @@ class Animal:
         self.loc_trials_missed_l = []
         self.loc_licks_rewarded_s = []
         self.loc_licks_rewarded_l = []
-
+        self.session_param = []
 
 
     def allSession(self, path, stage, has_block):
@@ -215,26 +215,29 @@ class Animal:
 
     def getAdjustedOptimal(self):
         self.session_adjusted_optimal = [0]*len(self.mean_consumption_length)
-        exp_params = utils.get_exp_params(self.task_params)
+       # exp_params = utils.get_exp_params(self.task_params)
         # print(f'mean consumption length is {self.mean_consumption_length}')
         # print(f'mean background length is {self.mean_background_length_l}')
         consum_stats = utils.substitute_nan(self.mean_consumption_length)
         if self.default == 'long':
             for i in range(self.default_session_num):
 
-                self.session_adjusted_optimal[i] = utils.get_optimal_time(exp_params[0], 0.9,
-                                                                          consum_stats[i] + self.mean_background_length_l[i])
+                self.session_adjusted_optimal[i] = utils.get_optimal_time(self.session_param[i], 0.9,
+                                                                          consum_stats[i]
+                                                                          + self.mean_background_length_l[i] if not \
+                    np.isnan(self.mean_consumption_length[i]+self.mean_background_length_l[i]) else np.nan)
             for i in range(self.default_session_num+1, self.change_session_num+self.default_session_num):
-                self.session_adjusted_optimal[i] = utils.get_optimal_time(exp_params[1], 0.9,
+                self.session_adjusted_optimal[i] = utils.get_optimal_time(self.session_param[i], 0.9,
                                                                           consum_stats[i]
                                                                         + self.mean_background_length_s[i]) if not \
                     np.isnan(self.mean_consumption_length[i]+self.mean_background_length_s[i]) else np.nan
         else:
             for i in range(self.default_session_num):
-                self.session_adjusted_optimal[i] = utils.get_optimal_time(exp_params[1], 0.9, consum_stats[i]
-                                                                        + self.mean_background_length_s[i])
+                self.session_adjusted_optimal[i] = utils.get_optimal_time(self.session_param[i], 0.9, consum_stats[i]
+                                                                        + self.mean_background_length_s[i] if not \
+                    np.isnan(self.mean_consumption_length[i]+self.mean_background_length_s[i]) else np.nan)
             for i in range(self.default_session_num+1, self.change_session_num+self.default_session_num):
-                self.session_adjusted_optimal[i] = utils.get_optimal_time(exp_params[0], 0.9, consum_stats[i]
+                self.session_adjusted_optimal[i] = utils.get_optimal_time(self.session_param[i], 0.9, consum_stats[i]
                                                                         + self.mean_background_length_l[i]) if not \
                     np.isnan(self.mean_consumption_length[i] + self.mean_background_length_l[i]) else np.nan
 
