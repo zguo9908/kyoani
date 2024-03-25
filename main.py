@@ -55,7 +55,7 @@ if __name__ == '__main__':
             mice = pickle.load(file)
             beh.mice = mice
 
-    plots.run_all_single_animal_plot(mice, optimal_wait, task_params=task_params, has_block=has_block)
+    #plots.run_all_single_animal_plot(mice, optimal_wait, task_params=task_params, has_block=has_block)
     # if has_block:
     #     beh.test_block_diff()
     # else:

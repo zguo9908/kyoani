@@ -12,6 +12,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import statsmodels.api as sm
+import pdb
 
 
 def generate_binary_reward_list(total_trials, rewarded_trials):
@@ -328,6 +329,8 @@ class Session:
         self.loc_trials_missed_l = []
         self.loc_licks_rewarded_s = []
         self.loc_licks_rewarded_l = []
+        self.all_rewarded_s = []
+        self.all_rewarded_l = []
         self.prob_at_lick_l_good = []
         self.reflex_length = 0.5
         # number of bg repeats
@@ -355,6 +358,7 @@ class Session:
         blk_missed_perc, miss_trials, trials_missed, loc_trials_missed = getMissedTrials(df, trial_num)
         print(self.file_path)
         mean_prob_at_lick = getProbRewarded(df)
+    
         perc_rewarded_perf, trials_rewarded, loc_trials_rewarded = getRewardedPerc(df, trial_num)
         all_licks = df.loc[(df['key'] == 'lick') & (df['value'] == 1)]
         # all_lick_time = all_licks.curr_wait_time
@@ -364,15 +368,21 @@ class Session:
         # print(len(curr_licks_during_wait))
         licks = curr_licks_during_wait.curr_wait_time
         lick_trials = curr_licks_during_wait.session_trial_num.tolist()
-
+        # pdb.set_trace() 
+        # Changes made by Cecelia 03/07/2024
+        reward_list = [0] * len(lick_trials)
+        for trial in trials_rewarded:
+            index = lick_trials.index(trial)
+            reward_list[index] = 1
+        # pdb.set_trace()    
         lick_mean, mean_lick_diff = self.getLickStats(licks, curr_opt_wait)
         consumption_lengths, background_lengths, lick_counts_consumption, lick_counts_background, \
         mean_consumption_length, mean_consumption_licks, mean_next_background_length, mean_background_licks, \
         perc_bout_into_background = getConsumptionStats(df, self.lickbout, 1)
 
-        print(f'number of trials experienced {len(loc_trials_rewarded)}')
+        # print(f'number of trials experienced {len(loc_trials_rewarded)}')
         # print(len(loc_trials_rewarded))
-        print(f'number of trials missed{sum(loc_trials_missed)}')
+        # print(f'number of trials missed{sum(loc_trials_missed)}')
         completed_trials = [trial for trial in range(0, self.session_trial_num) if trial not in trials_missed]
 
         # print(f'number of completed {len(completed_trials)}')
@@ -390,16 +400,16 @@ class Session:
         # filtered_loc_licks_rewarded = \
         #     [value for index, value in enumerate(loc_licks_rewarded) if index not in lick_not_completed]
 
-        if len(loc_licks_rewarded) != len(licks):
-            print("The lengths of filtered_loc_licks_rewarded and licks are not equal.")
-            # You can also print the lengths for further investigation
-            print("Length of filtered_loc_licks_rewarded:", len(loc_licks_rewarded))
-            print("Length of licks:", len(licks))
-        # print(f'this are the trials where its not counted as a trial?! {not_in_completed}')
-        # # print(loc_licks_rewarded)
-        print(f'all trials add up {len(licks) == len(loc_licks_rewarded)}')
+        # if len(loc_licks_rewarded) != len(licks):
+        #     print("The lengths of filtered_loc_licks_rewarded and licks are not equal.")
+        #     # You can also print the lengths for further investigation
+        #     print("Length of filtered_loc_licks_rewarded:", len(loc_licks_rewarded))
+        #     print("Length of licks:", len(licks))
+        # # print(f'this are the trials where its not counted as a trial?! {not_in_completed}')
+        # # # print(loc_licks_rewarded)
+        # print(f'all trials add up {len(licks) == len(loc_licks_rewarded)}')
         return blk_missed_perc, miss_trials, filtered_loc_trials_missed, mean_prob_at_lick, licks, lick_mean, \
-               mean_lick_diff, perc_rewarded_perf,  filtered_loc_trials_rewarded, loc_licks_rewarded,\
+               mean_lick_diff, perc_rewarded_perf,  filtered_loc_trials_rewarded, loc_licks_rewarded, reward_list,\
                mean_consumption_length, mean_consumption_licks, \
                mean_next_background_length, mean_background_licks, perc_bout_into_background, \
                #coefficients, p_values, confidence_intervals
@@ -441,7 +451,7 @@ class Session:
                 # print(blk_trial_num == good_trials_num + len(trials_lick_at_bg))
 
                 blk_missed_perc, miss_trials, loc_trials_missed, mean_prob_at_lick, licks, lick_mean, \
-                mean_lick_diff, perc_rewarded_perf, loc_trials_rewarded, loc_licks_rewarded,\
+                mean_lick_diff, perc_rewarded_perf, loc_trials_rewarded, loc_licks_rewarded,reward_list,\
                 mean_consumption_length, mean_consumption_licks, \
                 mean_next_background_length, mean_background_licks,perc_bout_into_background, \
                 coefficients, p_values, confidence_intervals = \
@@ -450,7 +460,7 @@ class Session:
 
                 blk_missed_perc_good, miss_trials_good, loc_trials_missed_good,\
                 mean_prob_at_lick_good, licks_good, lick_mean_good, \
-                mean_lick_diff_good, perc_rewarded_perf_good, loc_trials_rewarded_good,loc_licks_rewarded_good,\
+                mean_lick_diff_good, perc_rewarded_perf_good, loc_trials_rewarded_good,loc_licks_rewarded_good, reward_list_good,\
                 mean_consumption_length_good, mean_consumption_licks_good, \
                 mean_next_background_length_good, mean_background_licks_good, perc_bout_into_background_good =\
                                                                     self.process_selected_trials(good_trials_num,
@@ -530,7 +540,7 @@ class Session:
 
             session_missed_perc, miss_trials, loc_trials_missed, \
             mean_prob_at_lick, licks, lick_mean, \
-            mean_lick_diff, perc_rewarded_perf, loc_trials_rewarded, loc_licks_rewarded,\
+            mean_lick_diff, perc_rewarded_perf, loc_trials_rewarded, loc_licks_rewarded, reward_list,\
             mean_consumption_length, mean_consumption_licks, mean_next_background_length, \
             mean_background_licks, perc_bout_into_background\
                 = self.process_selected_trials(
@@ -538,7 +548,7 @@ class Session:
 
             session_missed_perc_good, miss_trials_good, loc_trials_missed_good, \
             mean_prob_at_lick_good, licks_good, lick_mean_good, \
-            mean_lick_diff_good, perc_rewarded_perf_good, loc_trials_rewarded_good, loc_licks_rewarded_good,\
+            mean_lick_diff_good, perc_rewarded_perf_good, loc_trials_rewarded_good, loc_licks_rewarded_good, reward_list_good,\
             mean_consumption_length_good, mean_consumption_licks_good, \
             mean_next_background_length_good, mean_background_licks_good, perc_bout_into_background_good = \
                                                         self.process_selected_trials(good_trials_num,
@@ -553,7 +563,7 @@ class Session:
            # print(len(licks_good))
             if timescape_type == 's':
                 self.animal.session_trial_num_s.append(self.animal.session_trial_num_s[-1] + self.session_trial_num)
-                print(f'current session trial num index are {self.animal.session_trial_num_s}')
+                # print(f'current session trial num index are {self.animal.session_trial_num_s}')
                 self.animal.all_holding_s.extend(licks)
                 self.animal.all_holding_s_list.append(licks)
                 self.animal.all_holding_s_index.append(len(self.animal.all_holding_s))
@@ -575,6 +585,7 @@ class Session:
                 self.loc_trials_rewarded_s.extend(loc_trials_rewarded)
                 self.loc_trials_missed_s.extend(loc_trials_missed)
                 self.loc_licks_rewarded_s.extend(loc_licks_rewarded)
+                self.all_rewarded_s.extend(reward_list)
                 self.prob_at_lick_s.append(mean_prob_at_lick)
                 self.bg_repeats_s.append(session_repeat_perc)
                 self.bg_repeats_s_licks.append(average_repeats)
@@ -591,16 +602,16 @@ class Session:
                     self.miss_perc_s.append(np.nan)
             else:
                 self.animal.session_trial_num_l.append(self.animal.session_trial_num_l[-1] + self.session_trial_num)
-                print(f'current session trial num index are {self.animal.session_trial_num_l}')
+                # print(f'current session trial num index are {self.animal.session_trial_num_l}')
                 self.animal.all_holding_l.extend(licks)
                 self.animal.all_holding_l_list.append(licks)
                 self.animal.all_holding_l_index.append(len(self.animal.all_holding_l))
 
-                if len(licks) != len(loc_licks_rewarded):
-                    print(self.file_path)
-                    print("===========================caution not matching!=======================")
-                    print(len(licks))
-                    print(len(loc_licks_rewarded))
+                # if len(licks) != len(loc_licks_rewarded):
+                #     print(self.file_path)
+                #     print("===========================caution not matching!=======================")
+                #     print(len(licks))
+                #     print(len(loc_licks_rewarded))
                 self.mean_background_length_l.append(mean_background_length)
                 self.mean_background_length_from_consumption_l.append(mean_next_background_length)
                 self.mean_background_lick_from_consumption_l.append(mean_background_licks)
@@ -618,6 +629,7 @@ class Session:
                 self.loc_trials_rewarded_l.extend(loc_trials_rewarded)
                 self.loc_trials_missed_l.extend(loc_trials_missed)
                 self.loc_licks_rewarded_l.extend(loc_licks_rewarded)
+                self.all_rewarded_l.extend(reward_list)
                 self.prob_at_lick_l.append(mean_prob_at_lick)
                 self.bg_repeats_l.append(session_repeat_perc)
                 self.bg_repeats_l_licks.append(average_repeats)
@@ -749,6 +761,15 @@ class Session:
         self.animal.loc_trials_missed_l.extend(self.loc_trials_missed_l)
         self.animal.loc_licks_rewarded_s.extend(self.loc_licks_rewarded_s)
         self.animal.loc_licks_rewarded_l.extend(self.loc_licks_rewarded_l)
+        self.animal.all_rewarded_s.extend(self.all_rewarded_s)
+        if len(self.all_rewarded_s)>0: 
+            # pdb.set_trace()
+            self.animal.all_rewarded_s_list.append(self.all_rewarded_s)
+            self.animal.all_rewarded_s_index.append(len(self.animal.all_rewarded_s))
+        self.animal.all_rewarded_l.extend(self.all_rewarded_l)
+        if len(self.all_rewarded_l)>0:
+            self.animal.all_rewarded_l_list.append(self.all_rewarded_l)
+            self.animal.all_rewarded_l_index.append(len(self.animal.all_rewarded_l))
 
         self.animal.opt_diff_s.append(mean(self.opt_diff_s) if len(self.opt_diff_s) > 0 else np.nan)
         self.animal.opt_diff_s_good.append(mean(self.opt_diff_s_good) if len(self.opt_diff_s) > 0 else np.nan)
