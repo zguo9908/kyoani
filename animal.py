@@ -4,7 +4,7 @@ import statistics
 import numpy as np
 import utils
 from session import Session
-
+import pdb
 class Animal:
     def __init__(self, name, default, change, sex, single_housing, task_params, optimal_wait):
         self.sex = None
@@ -148,7 +148,21 @@ class Animal:
         self.all_rewarded_l_list = []
         self.all_rewarded_s_index = []
         self.all_rewarded_l_index = []
+
         self.session_param = []
+
+        # use non_reflexive licks (non-impulsive licks for HMM analysis)
+        self.non_reflexive_l = []
+        self.non_reflexive_s = []
+        self.non_reflexive_l_list = []
+        self.non_reflexive_s_list = []
+        self.non_reflexive_l_index = []
+        self.non_reflexive_s_index = []
+
+        self.non_reflexive_rewarded_s = []
+        self.non_reflexive_rewarded_l = []
+        self.non_reflexive_rewarded_s_list = []
+        self.non_reflexive_rewarded_l_list = []
 
 
     def allSession(self, path, stage, has_block):
@@ -168,9 +182,17 @@ class Animal:
         for j in range(curr_session_num):
             curr_session_path = path + '/' + curr_sessions[j]
             os.chdir(curr_session_path)
-            file_path = curr_session_path + '/' + os.listdir()[0]
+            # pdb.set_trace()
+            # file_path = curr_session_path + '/' + os.listdir()[0] 
+            # ^^ not the optimal way to select the txt file
+            # instead, find the file ending with '.txt'
+            file_name = [file for file in os.listdir() if file.endswith('.txt')][0]
+            file_path = curr_session_path + '/' + file_name 
+            # print(curr_session_path)
+            # print(file_path)
             curr_session = Session(self, file_path, has_block, self.task_params, self.optimal_wait)
             curr_session.parseSessionStats()
+            # pdb.set_trace()
             curr_session.updateSessionStats()
             # self.session_index.append(self.all)
             self.session_list.append(curr_session)

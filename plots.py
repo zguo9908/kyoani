@@ -268,7 +268,8 @@ def plot_all_animal_scatter(mice, has_block, task_params):
 
 
 def set_axis_style(ax, labels):
-    ax.set_xticks(np.arange(1, len(labels) + 1), labels=labels)
+    ax.set_xticks(np.arange(1, len(labels) + 1))
+    ax.set_xticklabels(labels)
     ax.set_xlim(0.25, len(labels) + 0.75)
 
 
