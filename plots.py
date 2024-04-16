@@ -80,7 +80,7 @@ def plot_group_diff(g1, g2, categories, type, plot_patch, find_sig, plot_optimal
         x_long = list(range(1, len(g1_mean) + 1))
     else:
         x_long = x
-    ax.plot(x_long, y, marker='o', label=f'Average_{categories[0]}_group', color='red')
+    ax.plot(x_long, y, marker='o', label=f'Average_{categories[0]}', color='red')
 
     # Shade the area around the line plot to represent the standard deviation for long sessions
     ax.fill_between(x_long, [mean - std for mean, std in zip(y, g1_std)],
@@ -89,7 +89,7 @@ def plot_group_diff(g1, g2, categories, type, plot_patch, find_sig, plot_optimal
                     color='#FFAAAA')
     # plot short
     y = g2_mean
-    ax.plot(x, y, marker='o', label=f'Average_{categories[1]}_group', color='blue')
+    ax.plot(x, y, marker='o', label=f'Average_{categories[1]}', color='blue')
 
     # Shade the area around the line plot to represent the standard deviation for short sessions
     ax.fill_between(x, [mean - std for mean, std in zip(y, g2_std)],
@@ -123,19 +123,17 @@ def plot_group_diff(g1, g2, categories, type, plot_patch, find_sig, plot_optimal
         for key, value in kwargs.items():
             print(f"Optional {key}: {value}")
             if key == "opt_long":
-                ax.axhline(y=kwargs.get('opt_long'), color='r', linestyle='--', label='Optimal_long')
+                y = kwargs.get('opt_long')
+                plt.step(x_long, y[:len(x_long)], where='post', color='r', label='optimal_long_cohort')
             if key == "opt_short":
-                ax.axhline(y=kwargs.get('opt_short'), color='b', linestyle='--', label='Optimal_short')
+                y = kwargs.get('opt_short')
+                plt.step(x, y[:len(x)], where='post', color='b', label='optimal_short_cohort')
             if key == "adjusted_long":
                 y = kwargs.get('adjusted_long')
-                plt.step(x_long, y, where='post', color='lightcoral', label='adjusted_long_cohort')
-                # ax.axhline(y=kwargs.get('adjusted_long'), color='lightcoral', linestyle='--',
-                #            label='adjusted_optimal_long')
+                plt.step(x_long, y[:len(x_long)], where='post', color='lightcoral', label='adjusted_long_cohort')
             if key == "adjusted_short":
-                # ax.axhline(y=kwargs.get('adjusted_short'), color='lightblue', linestyle='--',
-                #            label=
                 y = kwargs.get('adjusted_short')
-                plt.step(x, y, where='post', color='lightblue',label='adjusted_short_cohort')
+                plt.step(x, y[:len(x)], where='post', color='lightblue',label='adjusted_short_cohort')
     return g1_mean, g2_mean
 
 
@@ -400,6 +398,9 @@ def plotTrialSplit(mouse, default):
     plt.savefig(f'{mouse.name}_perc_diff_trials.svg')
     plt.close()
 
+
+
+
 def plotHoldingWithError(mouse, default, optimal_wait):
     fig, ax = plt.subplots(figsize=(10, 5))
     if mouse.default_session_num > 0 and mouse.change_session_num > 0:
@@ -416,31 +417,24 @@ def plotHoldingWithError(mouse, default, optimal_wait):
             merged_mean = [x[0] for x in merged_lists_with_sources[1]]
             merged_q25 = [x[0] for x in merged_lists_with_sources[2]]
             merged_q75 = [x[0] for x in merged_lists_with_sources[3]]
-        # print(f'merged median {merged_median}')
 
         error_low = [max(0, float(median) - float(q25)) for median, q25 in
                      zip(merged_median, merged_q25)]
         error_high = [max(0, float(q75) - float(median)) for q75, median in
                       zip(merged_q75, merged_median)]
 
-        values_s_median = safe_extract(merged_median, 'List 1')
-        values_l_median = safe_extract(merged_median, 'List 2')
-        values_s_mean = safe_extract(merged_mean, 'List 1')
-        values_l_mean = safe_extract(merged_mean, 'List 2')
-
         x = np.arange(1, len(merged_median)+1)
         plt.errorbar(x, merged_median, yerr=[error_low, error_high], fmt='o', color='black', capsize=5, elinewidth=2,
                      barsabove=True, errorevery=1)
-        #print(f' where is value {values_s_median}')
-        #plt.plot(x, values_s_median, 'bs', label='Short - median', markersize=8, markerfacecolor='none')
-        #plt.plot(x, values_l_median, 'rs', label='Long - median', markersize=8, markerfacecolor='none')
-        #plt.plot(x, values_s_mean, 'bo', label='Short - mean', markersize=8, markerfacecolor='none')
-        #plt.plot(x, values_l_mean, 'ro', label='Long - mean', markersize=8, markerfacecolor='none')
         ax.axhline(y=optimal_wait[1], color='r', linestyle='--', label='Optimal_long')
         ax.axhline(y=optimal_wait[0], color='b', linestyle='--', label='Optimal_Short')
 
         background_patches(default, mouse, ax, x)
     else:
+        significance_array = np.array(mouse.sig)
+        print(significance_array)
+        # Generate x-coordinates for the asterisks
+        significant_indices = np.where(significance_array == 1)[0]
         if len(mouse.holding_s_std) > 0:
             x = range(1, sum(1 for x in mouse.holding_s_mean if not math.isnan(x)) + 1)
             error_low = [max(0, float(median) - float(q25)) for median, q25 in
@@ -451,7 +445,12 @@ def plotHoldingWithError(mouse, default, optimal_wait):
             plt.errorbar(x, mouse.holding_s_median, yerr=[error_low, error_high], fmt='o', color='blue',
                          label='Short - median', capsize=5, elinewidth=2, barsabove=True, errorevery=1)
             plt.plot(x, mouse.holding_s_median, 'bs', markersize=8, markerfacecolor='none')
-            plt.plot(x, mouse.holding_s_mean, 'bo', label='Short - mean', markersize=8, markerfacecolor='none')
+            # plt.plot(x, mouse.holding_s_mean, 'bo', label='Short - mean', markersize=8, markerfacecolor='none')
+            plt.step(x, mouse.optimal_wait, where='post', color='b', label='optimal_short')
+
+            plt.plot(significant_indices+1, significance_array[significant_indices], marker='*', color='blue',
+                     linestyle='',
+                     markersize=10, label='Significant')
         if len(mouse.holding_l_std) > 0:
             x = range(1, sum(1 for x in mouse.holding_l_mean if not math.isnan(x)) + 1)
             error_low = [max(0, float(median) - float(q25)) for median, q25 in
@@ -464,7 +463,11 @@ def plotHoldingWithError(mouse, default, optimal_wait):
                          label='Long - median', capsize=5, elinewidth=2, barsabove=True, errorevery=1)
             plt.plot(x, mouse.holding_l_median, 'rs', markersize=8, markerfacecolor='none')
             plt.plot(x, mouse.holding_l_mean, 'ro', label='Long - mean', markersize=8, markerfacecolor='none')
+            plt.step(x, mouse.optimal_wait, where='post', color='r', label='optimal_long')
 
+            plt.plot(significant_indices+1, significance_array[significant_indices], marker='*', color='red',
+                     linestyle='',
+                     markersize=10, label='Significant')
     ax.set_title(f'{mouse.name} holding times')
     ax.set_xlabel("session number")
     ax.set_ylabel("holding time(s)")

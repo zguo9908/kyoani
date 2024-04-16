@@ -1,11 +1,8 @@
 import json
-import math
 import os
-
 import seaborn as sns
-import numpy as np
 from matplotlib import pyplot as plt
-from pkg_resources import resource_string
+from statsmodels.formula.api import mixedlm
 
 import plots
 import utils
@@ -15,6 +12,12 @@ import ruptures as rpt
 from tqdm import tqdm
 from scipy.stats import ttest_ind
 from scipy import stats
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.regression.mixed_linear_model import MixedLM
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 from sklearn.neighbors import KernelDensity
 
 global groupings
@@ -34,7 +37,7 @@ class BehaviorAnalysis:
         self.task_params = task_params
         self.has_block = has_block
         self.param_dict = param_dict
-        self.optimal_wait = optimal_wait
+        self.optimal_wait = [] # a list of times for every session's optimal wait time
         self.path, _ = utils.set_analysis_path(self.has_block, self.task_params)
         self.animal_list = os.listdir()
         self.animal_num = len(self.animal_list)
@@ -80,7 +83,7 @@ class BehaviorAnalysis:
             curr_single_housing = self.animal_assignment.get(animal, [])[0].get("single_housed", {})[0]
             curr_single_housed = True if curr_single_housing == "T" else False
             curr_animal = Animal(animal, curr_default, curr_change, curr_sex, curr_single_housed,
-                                 self.task_params, self.optimal_wait)
+                                 self.task_params)
 
             self.mice.append(curr_animal)
             print(self.path)
@@ -116,7 +119,6 @@ class BehaviorAnalysis:
                 change_sessions = [session for session in change_session_list if self.task_type in session]
                 curr_animal.change_sessions = change_sessions
                 curr_animal.change_session_num = len(change_sessions)
-                # print(f'change session numer is {curr_animal.change_session_num}')
 
                 curr_animal.allSession(change_path, 'change', self.has_block)
                 print(f'processed all change sessions for mice {animal}')
@@ -127,7 +129,7 @@ class BehaviorAnalysis:
             curr_animal.getMovingAvg(window_size=8)
             curr_animal.getBlockWaiting()
             curr_animal.getAdjustedOptimal()
-
+            curr_animal.find_significance_from_optimal(0.05)
         return self.mice
 
     # test the difference between statictics of different blocks
@@ -154,6 +156,7 @@ class BehaviorAnalysis:
             if group_key not in grouped_data:
                 grouped_data[group_key] = {
                     'mice_list': [],
+                    'optimal_time': [],
                     'session_mean': [],
                     'session_nonimpulsive_mean': [],
                     'consumption_length': [],
@@ -167,6 +170,9 @@ class BehaviorAnalysis:
                     'adjusted_optimal':[]
                 }
             grouped_data[group_key]['mice_list'].append(mouse)
+            if len(grouped_data[group_key]['optimal_time']) < len(self.mice[i].optimal_wait):
+                grouped_data[group_key]['optimal_time'] = self.mice[i].optimal_wait
+
             if default_only:
                 # print(self.mice[i].name)
                 grouped_data[group_key]['consumption_length'].append(
@@ -177,7 +183,6 @@ class BehaviorAnalysis:
                                                                    [:self.mice[i].default_session_num])
 
                 if self.mice[i].default == 'long':
-
                     grouped_data[group_key]['session_mean'].append(self.mice[i].holding_l_mean
                                                                    [:self.mice[i].default_session_num])
                     grouped_data[group_key]['session_nonimpulsive_mean'].append(self.mice[i].non_reflexive_l_mean
@@ -259,10 +264,10 @@ class BehaviorAnalysis:
                     variables[f'{group_name}_{category}_{attribute}'] = groups[category][attribute]
             return variables
 
-        time_attributes = ['mice_list', 'session_mean', 'session_nonimpulsive_mean', 'consumption_length',
+        time_attributes = ['mice_list', 'optimal_time', 'session_mean', 'session_nonimpulsive_mean', 'consumption_length',
                            'mean_reward_rate', 'bg_repeat', 'impulsive_perc', 'all_licks_by_session',
                            'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal']
-        sex_attributes = ['mice_list', 'session_mean', 'session_nonimpulsive_mean', 'consumption_length',
+        sex_attributes = ['mice_list', 'optimal_time', 'session_mean', 'session_nonimpulsive_mean', 'consumption_length',
                           'mean_reward_rate', 'bg_repeat', 'impulsive_perc', 'all_licks_by_session',
                           'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal']
         housing_attributes = ['mice_list', 'session_mean', 'session_nonimpulsive_mean', 'consumption_length',
@@ -281,8 +286,6 @@ class BehaviorAnalysis:
         path, user = utils.set_plotting_path(has_block, task_params)
         os.chdir(path)
         print(f'plotting and saving in {path}')
-        # reverse_session = []
-
         if len(args) > 0:
             num_before_transition = args[0]
         else:
@@ -372,12 +375,33 @@ class BehaviorAnalysis:
 
             # session plots
             if groupings[i] == 'timescape':
-                plots.plot_group_diff(variables[i][f'{groupings[i]}_{categories[0]}_session_mean'],
-                                      variables[i][f'{groupings[i]}_{categories[1]}_session_mean'],
+
+                long_session_mean, short_session_mean = plots.plot_group_diff(
+                    variables[i][f'{groupings[i]}_{categories[0]}_session_mean'],
+                    variables[i][f'{groupings[i]}_{categories[1]}_session_mean'],
                                       categories, 'time', plot_patch, True, True,
-                                     opt_long=self.optimal_wait[1], opt_short=self.optimal_wait[0],
-                                     adjusted_short=g2_adjusted_optimal,
-                                     adjusted_long=g1_adjusted_optimal, num_before_transition=num_before_transition)
+                                      opt_long=variables[i][f'{groupings[i]}_{categories[0]}_optimal_time'],
+                                      opt_short=variables[i][f'{groupings[i]}_{categories[1]}_optimal_time'],
+                                      adjusted_short = g2_adjusted_optimal,
+                                      adjusted_long=g1_adjusted_optimal, num_before_transition=num_before_transition)
+
+                self.plot_last_n_differences(10, True,
+                                             False, variables[0]['timescape_long_mice_list'],
+                                             variables[0]['timescape_short_mice_list'],
+                                             variables[i][f'{groupings[i]}_{categories[0]}_adjusted_optimal'],
+                                             variables[i][f'{groupings[i]}_{categories[1]}_adjusted_optimal'],
+                                             variables[i][f'{groupings[i]}_{categories[0]}_session_mean'],
+                                             variables[i][f'{groupings[i]}_{categories[1]}_session_mean'])
+
+                # self.plot_last_n_differences(10, True,
+                #                              True, variables[0]['timescape_long_mice_list'],
+                #                              variables[0]['timescape_short_mice_list'],
+                #
+                #                              g1_adjusted_optimal,
+                #                              g2_adjusted_optimal,
+                #                              long_session_mean,
+                #                              short_session_mean
+                #                              )
             else:
                 plots.plot_group_diff(variables[i][f'{groupings[i]}_{categories[0]}_session_mean'],
                                       variables[i][f'{groupings[i]}_{categories[1]}_session_mean'],
@@ -391,7 +415,8 @@ class BehaviorAnalysis:
                 plots.plot_group_diff(variables[i][f'{groupings[i]}_{categories[0]}_session_nonimpulsive_mean'],
                                       variables[i][f'{groupings[i]}_{categories[1]}_session_nonimpulsive_mean'],
                                       categories, 'time', plot_patch, True, True,
-                                      opt_long=self.optimal_wait[1], opt_short=self.optimal_wait[0],
+                                      opt_long=variables[i][f'{groupings[i]}_{categories[0]}_optimal_time'],
+                                      opt_short=variables[i][f'{groupings[i]}_{categories[1]}_optimal_time'],
                                       adjusted_short=g2_adjusted_optimal,
                                       adjusted_long=g1_adjusted_optimal, num_before_transition=num_before_transition)
             else:
@@ -403,7 +428,7 @@ class BehaviorAnalysis:
                         f'non impulsive session licks average for long vs short cohorts by {groupings[i]}.svg')
             plt.close()
 
-        self.plot_group_pde(variables,has_block,task_params)
+        self.plot_group_pde(variables, has_block, task_params)
 
 
     def plot_group_pde(self, variables,has_block,task_params):
@@ -416,7 +441,6 @@ class BehaviorAnalysis:
 
             combined_data = [variables[i][f'{groupings[i]}_{categories[0]}_all_licks_by_session'],
                              variables[i][f'{groupings[i]}_{categories[1]}_all_licks_by_session']]
-           # max_sessions = max(len(session_data) for session_data in combined_data)
             max_sessions = max(max(len(data) for data in cohort) for cohort in combined_data)
             print(f'number of max session {max_sessions}')
             fig, axes = plt.subplots(max_sessions, 1, figsize=(4, 100))
@@ -455,3 +479,193 @@ class BehaviorAnalysis:
             plt.tight_layout()
             plt.savefig(f'PDE for cohorts across sessions by {groupings[i]}.svg')
             plt.close()
+
+    def plot_last_n_differences(self, n, default_only, cohort_avg, long_list, short_list,
+                                long_adjusted_optimal, short_adjusted_optimal, long_session_mean,
+                                short_session_mean):
+        fig, ax = plt.subplots(figsize=(9,7))
+        # print(long_list)
+        alpha = 0.05
+
+        if default_only:
+            if cohort_avg: # t test
+                adjusted_optimal_long = long_adjusted_optimal[-n:]
+                adjusted_optimal_short = short_adjusted_optimal[-n:]
+
+                short_mean = short_session_mean[-n:]
+                long_mean = long_session_mean[-n:]
+
+                # Compare short_mean and long_mean
+                t_statistic, p_value_short_long = stats.ttest_ind(short_mean, long_mean)
+                if p_value_short_long < alpha:
+                    print("Significant difference between short_mean and long_mean")
+                else:
+                    print("No significant difference between short_mean and long_mean")
+
+                # Compare adjusted_optimal_long and long_mean
+                t_statistic, p_value_adj_long = stats.ttest_ind(adjusted_optimal_long, long_mean)
+                if p_value_adj_long < alpha:
+                    print("Significant difference between adjusted_optimal_long and long_mean")
+                else:
+                    print("No significant difference between adjusted_optimal_long and long_mean")
+
+                # Compare short_mean and adjusted_optimal_short
+                t_statistic, p_value_short_adj = stats.ttest_ind(short_mean, adjusted_optimal_short)
+                if p_value_short_adj < alpha:
+                    print("Significant difference between short_mean and adjusted_optimal_short")
+                else:
+                    print("No significant difference between short_mean and adjusted_optimal_short")
+            else: # anova
+                last_n_entries_long = [sublist[-n:] for sublist in long_session_mean]
+                last_n_entries_short = [sublist[-n:] for sublist in short_session_mean]
+
+                last_n_adjust_long = [sublist[-n:] for sublist in long_adjusted_optimal]
+                last_n_adjust_short = [sublist[-n:] for sublist in short_adjusted_optimal]
+
+                # print(results)
+                combined_data = []
+                for animal_sessions, animal_id in zip(last_n_entries_long, long_list):
+                    combined_data.extend([(session, animal_id, 'Group 1') for session in animal_sessions])
+                for animal_sessions, animal_id in zip(last_n_entries_short, short_list):
+                    combined_data.extend([(session, animal_id, 'Group 2') for session in animal_sessions])
+
+                df = pd.DataFrame(combined_data, columns=['session', 'animal', 'group'])
+                print(df)
+                model_formula = 'session ~ group'
+                mixedlm_model = mixedlm(model_formula, groups="animal", data=df).fit(alpha = 0.05)
+                print(mixedlm_model.summary())
+                p_value_short_long = mixedlm_model.pvalues['group[T.Group 2]']
+                print(p_value_short_long)
+                if p_value_short_long < alpha:
+                    print("Significant difference between short_mean and long_mean")
+                else:
+                    print("No significant difference between short_mean and long_mean")
+
+                model_formula_adjust_session = 'time ~ group'
+                combined_data_short = []
+                for animal_sessions, animal_id in zip(last_n_entries_short, short_list):
+                    combined_data_short.extend([(session, animal_id, 'session') for session in animal_sessions])
+                for adjust_short, animal_id in zip(last_n_adjust_short, short_list):
+                    combined_data_short.extend([(adjust, animal_id, 'adjust') for adjust in adjust_short])
+
+                df_short = pd.DataFrame(combined_data_short, columns=['time', 'animal', 'group'])
+                print(df_short)
+                mixedlm_model_short = mixedlm(model_formula_adjust_session, groups="animal",
+                                              data=df_short).fit(alpha=0.05)
+
+                # Print the summary of the model
+                print(mixedlm_model_short.summary())
+                p_value_short_adj = mixedlm_model_short.pvalues['group[T.session]']
+                print(p_value_short_adj)
+                if p_value_short_adj < alpha:
+                    print("Significant difference between short_mean and adjusted_optimal_short")
+                else:
+                    print("No significant difference between short_mean and adjusted_optimal_short")
+
+                combined_data_long = []
+                for animal_sessions, animal_id in zip(last_n_entries_long, long_list):
+                    combined_data_long.extend([(session, animal_id, 'session') for session in animal_sessions])
+                for adjust_long, animal_id in zip(last_n_adjust_long, long_list):
+                    combined_data_long.extend([(adjust, animal_id, 'adjust') for adjust in adjust_long])
+
+                df_long = pd.DataFrame(combined_data_long, columns=['time', 'animal', 'group'])
+                print(df_long)
+                mixedlm_model_long = mixedlm(model_formula_adjust_session, groups="animal",
+                                             data=df_long).fit(alpha=0.05)
+
+                # Print the summary of the model
+                print(mixedlm_model_long.summary())
+                # Print the summary of the model
+                p_value_adj_long = mixedlm_model_long.pvalues['group[T.session]']
+                # print(p_value_long_adj)
+                if p_value_adj_long < alpha:
+                    print("Significant difference between long_mean and adjusted_optimal_long")
+                else:
+                    print("No significant difference between long_mean and adjusted_optimal_long")
+
+                # Flatten
+                long_mean = [item for sublist in last_n_entries_long for item in sublist]
+                short_mean = [item for sublist in last_n_entries_short for item in sublist]
+                adjusted_optimal_long = [item for sublist in last_n_adjust_long for item in sublist]
+                adjusted_optimal_short = [item for sublist in last_n_adjust_short for item in sublist]
+
+            # Calculate standard deviations
+            short_std = np.std(short_mean)
+            long_std = np.std(long_mean)
+            short_adj_std = np.std(adjusted_optimal_short)
+            long_adj_std = np.std(adjusted_optimal_long)
+
+            # Plotting
+
+            labels = ['s_mean', 's_adjusted_opt', 'l_mean', 'l_adjusted_opt']
+            short_means = [np.mean(short_mean), np.mean(adjusted_optimal_short), np.nan, np.nan]
+            long_means = [np.nan, np.nan, np.mean(long_mean), np.mean(adjusted_optimal_long)]
+
+            short_stds = [short_std, short_adj_std, np.nan, np.nan]
+            long_stds = [np.nan, np.nan, long_std, long_adj_std]
+
+            colors = ['blue', 'lightblue', 'red', 'lightcoral']
+
+            plt.bar(labels, short_means, yerr=short_stds, color=colors, alpha=0.5, label='Short', capsize=5)
+            plt.bar(labels, long_means, yerr=long_stds, color=colors, alpha=0.5, label='Long', capsize=5)
+
+            for i, (short_data, long_data) in enumerate(zip(short_mean, long_mean)):
+                plt.scatter([labels[0], labels[2]], [short_data, long_data], color='gray', marker='o', alpha=0.5)
+
+            for i, (short_data, long_data) in enumerate(zip(adjusted_optimal_short, adjusted_optimal_long)):
+                plt.scatter([labels[1], labels[3]], [short_data, long_data], color='gray', marker='o', alpha=0.5)
+
+            if p_value_short_long < alpha:
+                # Calculate position for the bracket and asterisk
+                x_short = labels.index('s_mean')
+                x_long = labels.index('l_mean')
+                x_center = (x_short + x_long) / 2
+                y_max = max(short_means[x_short], long_means[x_long])
+
+                # Plot bracket
+                plt.plot([x_short, x_long], [y_max+2, y_max+2], color='black', linewidth=2)
+
+                # Plot asterisk
+                if p_value_short_long < 0.001:
+                    plt.text(x_center, y_max + 2.2, '***', fontsize=12, ha='center')
+
+                else:
+                    plt.text(x_center, y_max + 2.2, '*', fontsize=12, ha='center')
+
+            if p_value_adj_long < alpha:
+                # Calculate position for the bracket and asterisk
+                x_short = labels.index('l_mean')
+                x_long = labels.index('l_adjusted_opt')
+                x_center = (x_short + x_long) / 2
+                y_max = max(long_means[x_short], adjusted_optimal_long[x_long])
+
+                # Plot bracket
+                plt.plot([x_short, x_long], [y_max+2, y_max+2], color='black', linewidth=2)
+
+                # Plot asterisk
+                if p_value_adj_long < 0.001:
+
+                    plt.text(x_center, y_max + 2.2, '***', fontsize=12, ha='center')
+                else:
+                    plt.text(x_center, y_max + 2.2, '*', fontsize=12, ha='center')
+
+            if p_value_short_adj < alpha:
+                # Calculate position for the bracket and asterisk
+                x_short = labels.index('s_mean')
+                x_long = labels.index('s_adjusted_opt')
+                x_center = (x_short + x_long) / 2
+                y_max = max(short_means[x_short], adjusted_optimal_short[x_long])
+
+                # Plot bracket
+                plt.plot([x_short, x_long], [y_max+2, y_max+2], color='black', linewidth=2)
+
+                if p_value_short_adj < 0.001:
+
+                    plt.text(x_center, y_max + 2.2, '***', fontsize=12, ha='center')
+                else:
+                    plt.text(x_center, y_max + 2.2, '*', fontsize=12, ha='center')
+            plt.xlabel('Variables')
+            plt.ylabel('Mean')
+            plt.savefig(f'default only {default_only} grouped {cohort_avg} last {n} differences of statistics.svg')
+            plt.close()
+

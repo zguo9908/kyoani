@@ -261,14 +261,13 @@ def get_regression_results(lick_time, num_prev_licks=3):
 
 
 class Session:
-    def __init__(self, animal, file_path, has_block, task_params, optimal_wait):
+    def __init__(self, animal, file_path, has_block, task_params):
         # within session lists
 
         self.animal = animal
         self.file_path = file_path
         self.has_block = has_block
         self.task_params = task_params
-        self.optimal_wait = optimal_wait
         self.lickbout = 0.3
 
         self.block_type = []
@@ -527,9 +526,15 @@ class Session:
             session_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats, mean_background_length = \
                 getBackgroundLicks(session_data_cp, self.session_trial_num)
 
-            session_mean_reward_time = int(session_data.mean_reward_time.iloc[0])
+            session_mean_reward_time = session_data.mean_reward_time.iloc[0]
             timescape_type = self.getTimescapeType(session_mean_reward_time)
             curr_opt_wait = utils.get_optimal_time(session_mean_reward_time, 0.9, 2)
+            # print(session_mean_reward_time)
+            # print(curr_opt_wait)
+            if len(self.animal.optimal_wait) >0:
+                if curr_opt_wait != self.animal.optimal_wait[-1]:
+                    self.animal.default_session_num = len(self.animal.optimal_wait)
+            self.animal.optimal_wait.append(curr_opt_wait)
 
             session_missed_perc, miss_trials, loc_trials_missed, \
             mean_prob_at_lick, licks, lick_mean, \
@@ -550,9 +555,6 @@ class Session:
             self.animal.mean_consumption_licks.append(mean_consumption_licks)
             self.animal.mean_session_reward_rate.append(self.session_reward_rate.mean())
 
-
-            # all session data for non-block, updates should be done in updates function!
-           # print(len(licks_good))
             if timescape_type == 's':
                 self.animal.session_trial_num_s.append(self.animal.session_trial_num_s[-1] + self.session_trial_num)
                 print(f'current session trial num index are {self.animal.session_trial_num_s}')

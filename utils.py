@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from sympy.abc import x,y
 from sympy import *
-from scipy.stats import ttest_ind, expon
+from scipy.stats import ttest_ind, expon, shapiro
 from scipy import stats
 
 def get_optimal_time(m,p,bg):
@@ -183,14 +183,19 @@ def get_exp_params(task_params):
 def substitute_nan(lst):
     if not isinstance(lst, list):
         raise ValueError("Input must be a list")
-
     last_non_nan = None
-
     for i, element in enumerate(lst):
         if not pd.isna(element):
             last_non_nan = element
         elif last_non_nan is not None:
             lst[i] = last_non_nan
-
     return lst
+
+
+def check_normality(data, alpha):
+    statistic, p_val = shapiro(data)
+    if p_val < alpha:
+        return 1
+    else:
+        return 0
 
