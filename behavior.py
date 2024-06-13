@@ -97,14 +97,13 @@ class BehaviorAnalysis:
             os.chdir(default_path)
             # print(f'Current working directory: {os.getcwd()}')
             default_session_list = os.listdir()
-            # filter all the items that are regular
             default_sessions = [session for session in default_session_list if self.task_type in session]
             curr_animal.default_sessions = default_sessions
             curr_animal.default_session_num = len(default_sessions)
             curr_animal.reverse_index = len(default_sessions)
             # print(curr_animal.reverse_index)
             curr_animal.allSession(default_path, 'default', self.has_block)
-            print(f'processed all default sessions for mice {animal}')
+            print(f'processed all default {curr_animal.default_session_num} sessions for mice {animal}')
 
             if os.name == 'nt':
                 change_path = self.path + "\\" + animal + "\\" + 'change'

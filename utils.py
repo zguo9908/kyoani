@@ -166,7 +166,7 @@ def get_single_housing(task_params):
     if task_params == 'param_v2':
         has_single_housing = False
         groupings_in_use = ['timescape', 'sex']
-    elif task_params == 'old_params':
+    elif task_params == 'old_params' or "param_v2_cue_bg":
         has_single_housing = True
         groupings_in_use = ['timescape', 'sex', 'single_housed']
     return has_single_housing, groupings_in_use

@@ -11,7 +11,7 @@ global task_type, has_block, task_params
 task_type = "regular"
 has_block = False
 #task_params = "old_params"
-task_params = "param_v2"
+task_params = "param_v2_cue_bg"
 
 global m1, p1, m2, p2, bg1, bg2
 # # old params
@@ -39,8 +39,10 @@ if __name__ == '__main__':
     if need_checkpoint:
         # mice = beh.process_all_animals(["ZG026", "ZG023", "ZG027", "ZG022", "ZG021",
         #                                "ZG020", "ZG024", "ZG025", 'ZG028', 'ZG029'])
-        mice = beh.process_all_animals(["ZG030", "ZG031", "ZG034","ZG035",
-                                         "ZG033", "ZG032", "ZG036", 'ZG037'])
+        # mice = beh.process_all_animals(["ZG031","ZG030",  "ZG034","ZG035",
+        #                                  "ZG033", "ZG032", "ZG036", 'ZG037'])
+        mice = beh.process_all_animals(["ZG038", "ZG039", "ZG040", "ZG041",
+                                        "ZG042", "ZG043", "ZG044", 'ZG045'])
         utils.set_analysis_path(has_block, task_params)
         # lick value == 1 being change
         # with open('mice_data_param2.pkl', 'wb') as file:
