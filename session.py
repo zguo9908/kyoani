@@ -39,7 +39,7 @@ def getRewardedPerc(df, trial_num):
 
 # a lick bout based analysis of consumption licks
 def getConsumptionStats(all_df, bout_interval, min_lick_count_consumption):
-    df = all_df.loc[(all_df['key'] == 'lick')]
+    df = all_df.loc[(all_df['key'] == 'lick') & (all_df['value'] == 1)]
     df = df.sort_values(by='session_time')
 
     # print(df.head())
@@ -95,8 +95,11 @@ def getConsumptionStats(all_df, bout_interval, min_lick_count_consumption):
                 lick_counts_background.append(lick_count_background)
 
         true_count = sum(background_lengths)
-        perc_bout_into_background = true_count/len(consumption_lengths)
-
+        print(len(consumption_lengths))
+        if len(consumption_lengths) > 0:
+            perc_bout_into_background = true_count/len(consumption_lengths)
+        else:
+            perc_bout_into_background = np.nan
     mean_consumption_length = mean(consumption_lengths) if len(consumption_lengths) > 0 else np.nan
     mean_consumption_licks = mean(lick_counts_consumption) if len(lick_counts_consumption) > 0 else np.nan
     mean_next_background_length = mean(background_lengths) if len(background_lengths) > 0 else np.nan
@@ -348,21 +351,35 @@ class Session:
 
     def process_selected_trials(self, trial_num, df, curr_opt_wait):
         # this function will process selected trials dataframe
-        # within block or within a no-block session
-        # can be all trials or just the good trials.
 
-        # outputs the miss trials percentage, miss trials,
-        # mean prob at lick,
         blk_missed_perc, miss_trials, trials_missed, loc_trials_missed = getMissedTrials(df, trial_num)
         print(self.file_path)
         mean_prob_at_lick = getProbRewarded(df)
         perc_rewarded_perf, trials_rewarded, loc_trials_rewarded = getRewardedPerc(df, trial_num)
         all_licks = df.loc[(df['key'] == 'lick') & (df['value'] == 1)]
         # all_lick_time = all_licks.curr_wait_time
-
+        print(df[df['key'] == 'lick'].dtypes)  # Check data types
+        print(df[df['key'] == 'lick']['value'].unique())  # Check unique values in 'value' column for licks
+        print(df[df['key'] == 'lick']['state'].unique())  # Check unique states for licks
+        df['key'] = df['key'].str.strip()
+        df['state'] = df['state'].str.strip()
+        df['value'] = pd.to_numeric(df['value'], errors='coerce')
         curr_licks_during_wait = df.loc[
-            (df['key'] == 'lick') & (df['state'] == 'in_wait') & (df['value'] == 1)]
-        # print(len(curr_licks_during_wait))
+            (df['key'] == 'lick') & (df['state'] == 'in_wait') & (df['value'] == 1)
+            ].copy()
+
+        # If there are no licks detected, print a debug message
+        if curr_licks_during_wait.empty:
+            print(f"No licks detected for file: {self.file_path}")
+            print(df[df['key'] == 'lick'].head())  # Print a few lick-related rows for debugging
+
+        # Handle potential float conversion issues
+        curr_licks_during_wait['curr_wait_time'] = pd.to_numeric(curr_licks_during_wait['curr_wait_time'],
+                                                                 errors='coerce')
+
+        # Remove rows with NaN curr_wait_time
+        curr_licks_during_wait = curr_licks_during_wait.dropna(subset=['curr_wait_time'])
+
         licks = curr_licks_during_wait.curr_wait_time
         lick_trials = curr_licks_during_wait.session_trial_num.tolist()
 
@@ -370,7 +387,10 @@ class Session:
         consumption_lengths, background_lengths, lick_counts_consumption, lick_counts_background, \
         mean_consumption_length, mean_consumption_licks, mean_next_background_length, mean_background_licks, \
         perc_bout_into_background = getConsumptionStats(df, self.lickbout, 1)
-
+        print(f"Total rows in dataframe: {len(df)}")
+        print(f"Rows with key='lick': {len(df[df['key'] == 'lick'])}")
+        print(f"Rows with key='lick' and value=1: {len(df[(df['key'] == 'lick') & (df['value'] == 1)])}")
+        print(f"Detected licks during wait: {len(curr_licks_during_wait)}")
         print(f'number of trials experienced {len(loc_trials_rewarded)}')
         # print(len(loc_trials_rewarded))
         print(f'number of trials missed{sum(loc_trials_missed)}')
@@ -542,7 +562,7 @@ class Session:
             mean_consumption_length, mean_consumption_licks, mean_next_background_length, \
             mean_background_licks, perc_bout_into_background\
                 = self.process_selected_trials(
-                self.session_trial_num, session_data_cp, curr_opt_wait)
+                  self.session_trial_num, session_data_cp, curr_opt_wait)
 
             session_missed_perc_good, miss_trials_good, loc_trials_missed_good, \
             mean_prob_at_lick_good, licks_good, lick_mean_good, \

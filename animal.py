@@ -15,6 +15,9 @@ class Animal:
         self.session_num = None
         self.default_session_num = None
         self.change_session_num = None
+        self.learning_session_num = None
+        self.habituate_session_num = None # session where animal starts to be habituated
+        self.record_session_num = None # session where animal starts to be recorded
         self.name = name
         self.default = default
         self.change = change
@@ -145,8 +148,7 @@ class Animal:
         self.optimal_wait = []
         self.sig = []
 
-
-    def allSession(self, path, stage, has_block):
+    def all_session(self, path, stage, has_block):
         os.chdir(path)
         if stage == 'default':
             self.default_session_num = len(self.default_sessions)
@@ -159,26 +161,36 @@ class Animal:
             curr_session_num = self.change_session_num
             curr_sessions = self.change_sessions
 
-
         for j in range(curr_session_num):
-            curr_session_path = path + '\\' + curr_sessions[j]
-            os.chdir(curr_session_path)
-            file_path = curr_session_path + '\\' + os.listdir()[0]
-            curr_session = Session(self, file_path, has_block, self.task_params)
-            curr_session.parseSessionStats()
-            curr_session.updateSessionStats()
-            # self.session_index.append(self.all)
-            self.session_list.append(curr_session)
-        # print(f'{self.name} has equal number of short licks and trials '
-        #       f'{len(self.all_holding_s) == len(self.loc_licks_rewarded_s)}')
-        # print(len(self.all_holding_s))
-        # print(len(self.loc_licks_rewarded_s))
-        # print(f'{self.name} has equal number of long licks and trials '
-        #       f'{len(self.all_holding_l) == len(self.loc_licks_rewarded_l)}')
-        # print(len(self.all_holding_l))
-        # print(len(self.loc_licks_rewarded_l))
-    # print(f'std for l session {self.holding_l_std}')
-    # print(self.holding_s_std)
+            if j < self.learning_session_num:
+                curr_session_path = path + '\\' + "learn" + '\\' + curr_sessions[j]
+                os.chdir(curr_session_path)
+                file_path = curr_session_path + '\\' + os.listdir()[0]
+                curr_session = Session(self, file_path, has_block, self.task_params)
+                curr_session.parseSessionStats()
+                curr_session.updateSessionStats()
+                # self.session_index.append(self.all)
+                self.session_list.append(curr_session)
+            elif j >= self.learning_session_num and j < self.habituate_session_num + self.learning_session_num:
+                curr_session_path = path + '\\' + "habituate" + '\\' + curr_sessions[j]
+                os.chdir(curr_session_path)
+                file_path = curr_session_path + '\\' + os.listdir()[0]
+                curr_session = Session(self, file_path, has_block, self.task_params)
+                curr_session.parseSessionStats()
+                curr_session.updateSessionStats()
+                # self.session_index.append(self.all)
+                self.session_list.append(curr_session)
+            else:
+                curr_session_path = path + '\\' + "record" + '\\' + curr_sessions[j]
+                os.chdir(curr_session_path)
+                file_path = curr_session_path + '\\' + os.listdir()[0]
+                curr_session = Session(self, file_path, has_block, self.task_params)
+                curr_session.parseSessionStats()
+                curr_session.updateSessionStats()
+                # self.session_index.append(self.all)
+                self.session_list.append(curr_session)
+
+
 
 
     # this function will take moving average across windows of trials

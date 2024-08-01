@@ -298,13 +298,40 @@ def find_modes_and_stds(data):
     return modes, stds
 
 
+
+
 def background_patches(default, mouse, ax, x):
     if default == 'long':
-        ax.axvspan(min(x), mouse.reverse_index + 0.5, color='red', alpha=0.1)  # Red patch before x_split
-        ax.axvspan(mouse.reverse_index + 0.5, max(x), color='blue', alpha=0.1)
+        base_color = 'red'
+        colors = ['pink', 'magenta', 'red']
     else:
-        ax.axvspan(min(x), mouse.reverse_index + 0.5, color='blue', alpha=0.1)  # Red patch before x_split
-        ax.axvspan(mouse.reverse_index + 0.5, max(x), color='red', alpha=0.1)
+        base_color = 'blue'
+        colors = ['lightblue', 'cyan', 'navy']
+
+    # Create a color map
+    color_map = {
+        'learn': colors[0],
+        'habituate': colors[1],
+        'record': colors[2]
+    }
+
+    # Set default background color
+    ax.axvspan(min(x), max(x), color=mcolors.to_rgba(base_color, alpha=0.1))
+
+    # Add colored patches based on training stages
+    if mouse.learning_session_num > 0:
+        ax.axvspan(min(x), mouse.learning_session_num, color=mcolors.to_rgba(color_map['learn'], alpha=0.2))
+
+    if mouse.habituate_session_num > 0:
+        ax.axvspan(mouse.learning_session_num, mouse.learning_session_num + mouse.habituate_session_num,
+                   color=mcolors.to_rgba(color_map['habituate'], alpha=0.2))
+
+    if mouse.record_session_num > 0:
+        ax.axvspan(mouse.habituate_session_num, max(x), color=mcolors.to_rgba(color_map['record'], alpha=0.2))
+
+    # Add the reverse line
+    ax.axvline(mouse.reverse_index + 0.5, color='black', linestyle='--', alpha=0.5)
+
 
 
 def safe_extract(lst, source_label):
@@ -586,11 +613,13 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         #non impulsive licks
         fig, ax = plt.subplots(figsize=(10, 5))
         if len(mice[i].holding_s_std) > 0:
-            plt.errorbar(range(len(mice[i].non_reflexive_s_mean)), mice[i].non_reflexive_s_mean, yerr=mice[i].non_reflexive_s_std,
+            plt.errorbar(range(len(mice[i].non_reflexive_s_mean)),
+                         mice[i].non_reflexive_s_mean, yerr=mice[i].non_reflexive_s_std,
                          fmt='o', color='blue')
             ax.legend(['short'])
         if len(mice[i].holding_l_std) > 0:
-            plt.errorbar(range(len(mice[i].non_reflexive_l_mean)), mice[i].non_reflexive_l_mean, yerr=mice[i].non_reflexive_l_std,
+            plt.errorbar(range(len(mice[i].non_reflexive_l_mean)),
+                         mice[i].non_reflexive_l_mean, yerr=mice[i].non_reflexive_l_std,
                          fmt='o', color='red')
             ax.legend(['long'])
         ax.set_title(f'{mice[i].name} holding times')

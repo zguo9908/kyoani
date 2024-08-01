@@ -95,14 +95,58 @@ class BehaviorAnalysis:
             # default_path = self.path + "\\" + animal + "\\" + 'default'
             # print(f'Trying to change to directory: {default_path}')
             os.chdir(default_path)
-            # print(f'Current working directory: {os.getcwd()}')
-            default_session_list = os.listdir()
-            default_sessions = [session for session in default_session_list if self.task_type in session]
+
+            if os.name == 'nt':
+                learning_path = default_path + "\\" + 'learn'
+                habituate_path = default_path + "\\" + 'habituate'
+                record_path = default_path + "\\" + 'record'
+                learning_sessions = []
+                habituate_sessions = []
+                record_sessions = []
+            else:
+                learning_path = self.path + "/" + animal + "/" + 'learn'
+                habituate_path = self.path + "/" + animal + "/" + 'habituate'
+                record_path = self.path + "/" + animal + "/" + 'record'
+                learning_sessions = []
+                habituate_sessions = []
+                record_sessions = []
+
+            if os.path.exists(learning_path):
+                os.chdir(learning_path)
+                print(learning_path)
+                print(os.path)
+                learning_session_list = os.listdir()
+                learning_sessions = [session for session in learning_session_list if self.task_type in session]
+                print(learning_sessions)
+                curr_animal.learning_session_num = len(learning_sessions)
+                print(f'number of learning sessions: {curr_animal.learning_session_num}')
+            if os.path.exists(habituate_path):
+                os.chdir(habituate_path)
+                habituate_session_list = os.listdir()
+                habituate_sessions = [session for session in habituate_session_list if self.task_type in session]
+                curr_animal.habituate_session_num = len(habituate_sessions)
+                print(f'number of habituate sessions: {curr_animal.habituate_session_num}')
+            else:
+                curr_animal.habituate_session_num = 0
+            if os.path.exists(record_path):
+                os.chdir(record_path)
+                record_session_list = os.listdir()
+                record_sessions = [session for session in record_session_list if self.task_type in session]
+                curr_animal.record_session_num = len(record_sessions)
+                print(f'number of recording sessions: {curr_animal.record_session_num}')
+            else:
+                curr_animal.record_session_num = 0
+            # default_session_list = os.listdir()
+            default_sessions = []
+            default_sessions.extend(learning_sessions)
+            default_sessions.extend(habituate_sessions)
+            default_sessions.extend(record_sessions)
+            print(default_sessions)
             curr_animal.default_sessions = default_sessions
             curr_animal.default_session_num = len(default_sessions)
             curr_animal.reverse_index = len(default_sessions)
             # print(curr_animal.reverse_index)
-            curr_animal.allSession(default_path, 'default', self.has_block)
+            curr_animal.all_session(default_path, 'default', self.has_block)
             print(f'processed all default {curr_animal.default_session_num} sessions for mice {animal}')
 
             if os.name == 'nt':
@@ -119,7 +163,7 @@ class BehaviorAnalysis:
                 curr_animal.change_sessions = change_sessions
                 curr_animal.change_session_num = len(change_sessions)
 
-                curr_animal.allSession(change_path, 'change', self.has_block)
+                curr_animal.all_session(change_path, 'change', self.has_block)
                 print(f'processed all change sessions for mice {animal}')
             else:
                 print("only default")
