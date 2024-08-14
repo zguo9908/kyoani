@@ -21,30 +21,22 @@ def generate_binary_reward_list(total_trials, rewarded_trials):
     for trial_number in rewarded_trials:
         if trial_number <= total_trials:
             binary_rewards[trial_number - 1] = 1  # Mark rewarded trials as 1
-    # print(f'rewarded trials are {rewarded_trials}')
-    # print(f'binary values are {binary_rewards}')
     return binary_rewards
 
 def getRewardedPerc(df, trial_num):
     # print(df)
-    rewarded_trial = df.loc[(df['key'] == 'reward') & (df['value'] == 1) & (df['state'].shift(1) == 'in_wait')
-                            & (df['key'].shift(1) == 'lick') & (df['value'].shift(1) == 1)]
-
+    rewarded_trial = df.loc[(df['key'] == 'reward') & (df['value'] == 1) & (df['state'].shift(1) == 'in_wait')]
     trials_rewarded = rewarded_trial['session_trial_num'].tolist()
-
     loc_trials_rewarded = generate_binary_reward_list(trial_num, trials_rewarded)
     perc_rewarded_perf = len(rewarded_trial) / trial_num
-
     return perc_rewarded_perf, trials_rewarded, loc_trials_rewarded
 
-# a lick bout based analysis of consumption licks
+
 def getConsumptionStats(all_df, bout_interval, min_lick_count_consumption):
     df = all_df.loc[(all_df['key'] == 'lick') & (all_df['value'] == 1)]
     df = df.sort_values(by='session_time')
-
-    # print(df.head())
     df['time_diff'] = df['session_time'].diff()
-    # Define start of a bout (time difference > 0.3 seconds)
+    # Define start of a bout (time difference > bout_interval seconds)
     bout_start = df['time_diff'] > bout_interval
     # Create a bout number
     df['bout_number'] = bout_start.cumsum()
@@ -54,7 +46,7 @@ def getConsumptionStats(all_df, bout_interval, min_lick_count_consumption):
                                                  session_time_last=('session_time', 'last'),
                                                  state_first=('state', 'first')).reset_index()
 
-    # Filter bouts that meet the lick time difference criterion and start in "in_consumption"
+    # Filter bouts that start in "in_consumption"
     lick_bouts = bout_indices[bout_indices['state_first'] == 'in_consumption']
 
     # Initialize variables to store results
@@ -63,52 +55,61 @@ def getConsumptionStats(all_df, bout_interval, min_lick_count_consumption):
     lick_counts_consumption = []
     lick_counts_background = []
     perc_bout_into_background = np.nan
+
     if not lick_bouts.empty:
-        start_time = lick_bouts['session_time_first']
-        end_time = lick_bouts['session_time_last']
-        # Set a threshold for minimum consumption duration or number of licks
-        for bout_number, start_time, end_time in zip(lick_bouts['bout_number'], start_time, end_time):
+        for _, bout in lick_bouts.iterrows():
+            bout_number = bout['bout_number']
+            start_time = bout['session_time_first']
+
+            # Find the end of the consumption period
+            end_time = all_df[(all_df['session_time'] > start_time) &
+                              (all_df['state'] != 'in_consumption')]['session_time'].min()
+
+            if pd.isna(end_time):
+                end_time = bout['session_time_last']
+
             # Calculate the length of consumption lick bout
             consumption_length = end_time - start_time
 
             # Calculate the length of licks that span into the next background state
-            next_background = df[(df['state'] == 'in_background') & (df['session_time'] <= end_time) &
-                                 (df['session_time'] > start_time)]
+            next_background = all_df[(all_df['state'] == 'in_background') &
+                                     (all_df['session_time'] <= end_time) &
+                                     (all_df['session_time'] > start_time)]
+
             if not next_background.empty:
                 next_background_length = next_background['session_time'].iloc[-1] - \
-                                         next_background['session_time'].iloc[-0]
+                                         next_background['session_time'].iloc[0]
             else:
                 next_background_length = 0
 
             # Calculate the number of licks for the entire consumption period
-            lick_count_consumption = df[(df['session_time'] >= start_time) & (df['session_time'] <= end_time)
-                                        & (df['value'] == 1)]['session_time'].count()
+            lick_count_consumption = df[(df['session_time'] >= start_time) &
+                                        (df['session_time'] <= end_time)].shape[0]
 
             # Calculate the number of licks in the next background state
-            lick_count_background = next_background[next_background['value'] == 1]['session_time'].count()
+            lick_count_background = next_background[next_background['key'] == 'lick'].shape[0]
 
-            # Check if the bout meets the minimum duration or lick count criteria for consumption
+            # Check if the bout meets the minimum lick count criteria for consumption
             if lick_count_consumption >= min_lick_count_consumption:
                 consumption_lengths.append(consumption_length)
                 background_lengths.append(next_background_length)
                 lick_counts_consumption.append(lick_count_consumption)
                 lick_counts_background.append(lick_count_background)
 
-        true_count = sum(background_lengths)
-        print(len(consumption_lengths))
-        if len(consumption_lengths) > 0:
-            perc_bout_into_background = true_count/len(consumption_lengths)
-        else:
-            perc_bout_into_background = np.nan
-    mean_consumption_length = mean(consumption_lengths) if len(consumption_lengths) > 0 else np.nan
-    mean_consumption_licks = mean(lick_counts_consumption) if len(lick_counts_consumption) > 0 else np.nan
-    mean_next_background_length = mean(background_lengths) if len(background_lengths) > 0 else np.nan
-    mean_background_licks = mean(lick_counts_background) if len(lick_counts_background) > 0 else np.nan
+    true_count = sum(background_lengths)
+    if len(consumption_lengths) > 0:
+        perc_bout_into_background = true_count / len(consumption_lengths)
+    else:
+        perc_bout_into_background = np.nan
 
-    return consumption_lengths, background_lengths, lick_counts_consumption, lick_counts_background, \
-           mean_consumption_length, mean_consumption_licks, mean_next_background_length, mean_background_licks,\
-           perc_bout_into_background
+    mean_consumption_length = np.mean(consumption_lengths) if len(consumption_lengths) > 0 else np.nan
+    mean_consumption_licks = np.mean(lick_counts_consumption) if len(lick_counts_consumption) > 0 else np.nan
+    mean_next_background_length = np.mean(background_lengths) if len(background_lengths) > 0 else np.nan
+    mean_background_licks = np.mean(lick_counts_background) if len(lick_counts_background) > 0 else np.nan
 
+    return (consumption_lengths, background_lengths, lick_counts_consumption, lick_counts_background,
+            mean_consumption_length, mean_consumption_licks, mean_next_background_length, mean_background_licks,
+            perc_bout_into_background)
 def getMissedTrials(df, trial_num):
     miss_trials = df.loc[(df['state'] == 'in_wait') &
                          (df['next_state'] == 'trial_ends') &
@@ -450,8 +451,6 @@ class Session:
 
                 # find number of trials in this block
                 blk_trial_num = max(curr_blk.session_trial_num) - min(curr_blk.session_trial_num) + 1
-
-                # perc_rewarded_perf = getRewardedPerc(curr_blk, blk_trial_num)
                 curr_blk_mean_reward_time = int(curr_blk.mean_reward_time.iloc[0])
                 curr_opt_wait, timescape_type = self.getTimescapeType(curr_blk_mean_reward_time)
                 blk_cp = curr_blk.copy()

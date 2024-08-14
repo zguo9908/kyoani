@@ -3,9 +3,11 @@ import os
 from sklearn.neighbors import KernelDensity
 from scipy.signal import find_peaks
 from scipy.stats import norm
-import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
+import matplotlib
+matplotlib.use('Agg')  # Use Agg backend for saving
+import matplotlib.pyplot as plt
+
 import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
@@ -298,9 +300,12 @@ def find_modes_and_stds(data):
     return modes, stds
 
 
-
-
 def background_patches(default, mouse, ax, x):
+    print("Entering background_patches function")
+    print(f"x range: {min(x)} to {max(x)}")
+    print(
+        f"Mouse attributes: learning_session_num={mouse.learning_session_num}, habituate_session_num={mouse.habituate_session_num}, record_session_num={mouse.record_session_num}")
+
     if default == 'long':
         base_color = 'red'
         colors = ['pink', 'magenta', 'red']
@@ -316,22 +321,48 @@ def background_patches(default, mouse, ax, x):
     }
 
     # Set default background color
-    ax.axvspan(min(x), max(x), color=mcolors.to_rgba(base_color, alpha=0.1))
+    ax.axvspan(min(x), max(x), color=mcolors.to_rgba(base_color, alpha=0.3), zorder=0)
+    print(f"Added base background from {min(x)} to {max(x)}")
+
+    # Calculate cumulative session numbers
+    learn_end = mouse.learning_session_num
+    habituate_end = learn_end + mouse.habituate_session_num
+    record_end = habituate_end + mouse.record_session_num
 
     # Add colored patches based on training stages
     if mouse.learning_session_num > 0:
-        ax.axvspan(min(x), mouse.learning_session_num, color=mcolors.to_rgba(color_map['learn'], alpha=0.2))
+        ax.axvspan(min(x), learn_end, color=mcolors.to_rgba(color_map['learn'], alpha=0.5), zorder=1)
+        print(f"Added learning patch from {min(x)} to {learn_end}")
 
     if mouse.habituate_session_num > 0:
-        ax.axvspan(mouse.learning_session_num, mouse.learning_session_num + mouse.habituate_session_num,
-                   color=mcolors.to_rgba(color_map['habituate'], alpha=0.2))
+        ax.axvspan(learn_end, habituate_end, color=mcolors.to_rgba(color_map['habituate'], alpha=0.5), zorder=1)
+        print(f"Added habituate patch from {learn_end} to {habituate_end}")
 
     if mouse.record_session_num > 0:
-        ax.axvspan(mouse.habituate_session_num, max(x), color=mcolors.to_rgba(color_map['record'], alpha=0.2))
+        ax.axvspan(habituate_end, record_end, color=mcolors.to_rgba(color_map['record'], alpha=0.5), zorder=1)
+        print(f"Added record patch from {habituate_end} to {record_end}")
 
     # Add the reverse line
-    ax.axvline(mouse.reverse_index + 0.5, color='black', linestyle='--', alpha=0.5)
+    ax.axvline(mouse.reverse_index + 0.5, color='black', linestyle='--', alpha=0.5, zorder=2)
+    print(f"Added reverse line at {mouse.reverse_index + 0.5}")
 
+    # Ensure the x-axis limits cover all sessions
+    ax.set_xlim(min(x), max(max(x), record_end))
+    print(f"Set x-axis limits to {min(x)} and {max(max(x), record_end)}")
+
+    # Add test rectangle
+    rect = plt.Rectangle((0, 0), 1, 1, fill=True, color='green', zorder=3)
+    ax.add_patch(rect)
+    print("Added test rectangle")
+
+    # Force the plot to update
+    plt.draw()
+    plt.pause(0.001)
+    print("Forced plot update")
+
+    # Print current axes limits
+    print(f"Current x-axis limits: {ax.get_xlim()}")
+    print(f"Current y-axis limits: {ax.get_ylim()}")
 
 
 def safe_extract(lst, source_label):
@@ -344,12 +375,8 @@ def plotTrialSplit(mouse, default):
     # Width of each bar
     bar_width = 0.35
     fig, ax = plt.subplots(figsize=(15, 5))
-  # Create a new figure and axes for each plot
     if mouse.default_session_num > 0 and mouse.change_session_num > 0:
-        # Example list pairs
-
-        list_pairs = [(mouse.miss_perc_s, mouse.miss_perc_l), (mouse.bg_restart_s, mouse.bg_restart_l)]  # and so on...
-
+        list_pairs = [(mouse.miss_perc_s, mouse.miss_perc_l), (mouse.bg_restart_s, mouse.bg_restart_l)]
         merged_lists_with_sources = [utils.merge_lists_with_sources(list1, list2) for list1, list2 in list_pairs]
         if len(merged_lists_with_sources) >= 2:
             # Extracting values for operation
@@ -426,8 +453,6 @@ def plotTrialSplit(mouse, default):
     plt.close()
 
 
-
-
 def plotHoldingWithError(mouse, default, optimal_wait):
     fig, ax = plt.subplots(figsize=(10, 5))
     if mouse.default_session_num > 0 and mouse.change_session_num > 0:
@@ -455,8 +480,6 @@ def plotHoldingWithError(mouse, default, optimal_wait):
                      barsabove=True, errorevery=1)
         ax.axhline(y=optimal_wait[1], color='r', linestyle='--', label='Optimal_long')
         ax.axhline(y=optimal_wait[0], color='b', linestyle='--', label='Optimal_Short')
-
-        background_patches(default, mouse, ax, x)
     else:
         significance_array = np.array(mouse.sig)
         print(significance_array)
@@ -499,7 +522,10 @@ def plotHoldingWithError(mouse, default, optimal_wait):
     ax.set_xlabel("session number")
     ax.set_ylabel("holding time(s)")
     ax.legend(loc='upper right')
-
+    x = np.arange(1, len(merged_median) + 1) if 'merged_median' \
+                                                in locals() else range(1, max(len(mouse.holding_s_mean),
+                                                len(mouse.holding_l_mean)) + 1)
+    background_patches(default, mouse, ax, x)
     plt.savefig(f'{mouse.name}_holding_times.svg')
     plt.close()
 
@@ -568,8 +594,6 @@ def plotPairingLists(slist, llist, default, figuretype):
     values_l = [x[0] if x[1] == 'List 2' else None for x in merged_list]
 
     x = np.arange(1, len(merged_list)+1)
-   # print(values_s)
-
     plt.plot(x, values_s, 'bo', label=f'{"Default" if default == "short" else "Change"} ')
     plt.plot(x, values_l, 'ro', label=f'{"Default" if default == "long" else "Change"}')
     if figuretype == 'perc':
@@ -580,6 +604,7 @@ def plotPairingLists(slist, llist, default, figuretype):
         ax.set_ylabel('#')
     ax.set_xlabel('Sessions')
     ax.set_xticks(x)
+
 
 def rawPlots(mice, optimal_wait, task_params, has_block, saving):
     #path = os.path.normpath(r'D:\figures\behplots') + "\\" + task_params
@@ -670,7 +695,8 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         ax.set_ylabel("consumption time(s)")
         x = np.arange(1, len(mice[i].mean_consumption_length) + 1)
         background_patches(curr_default, mice[i], ax, x)
-        plt.savefig(f'{mice[i].name} mean consumption lengths.svg')
+        plt.tight_layout()
+        plt.savefig(f'{mice[i].name} mean consumption lengths.svg', dpi=300)
         plt.close()
 
         fig, ax = plt.subplots(figsize=(10, 5))
@@ -680,7 +706,8 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         ax.set_ylabel("consumption licks")
         x = np.arange(1, len(mice[i].mean_consumption_licks) + 1)
         background_patches(curr_default, mice[i], ax, x)
-        plt.savefig(f'{mice[i].name} mean consumption licks.svg')
+        plt.tight_layout()
+        plt.savefig(f'{mice[i].name} mean consumption licks.svg', dpi=300)
         plt.close()
 
         fig, ax = plt.subplots(figsize=(10, 5))
@@ -690,7 +717,8 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         ax.set_ylabel("reward rate (ul/s)")
         x = np.arange(1, len(mice[i].mean_consumption_licks) + 1)
         background_patches(curr_default, mice[i], ax, x)
-        plt.savefig(f'{mice[i].name} mean session reward rate.svg')
+        plt.tight_layout()
+        plt.savefig(f'{mice[i].name} mean session reward rate.svg',dpi=300)
         plt.close()
 
         fig, ax = plt.subplots(figsize=(10, 5))
@@ -700,14 +728,16 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         ax.set_ylabel("time(s)")
         x = np.arange(1, len(mice[i].session_adjusted_optimal) + 1)
         background_patches(curr_default, mice[i], ax, x)
-        plt.savefig(f'{mice[i].name} session adjusted optimal.svg')
+        plt.tight_layout()
+        plt.savefig(f'{mice[i].name} session adjusted optimal.svg',dpi=300)
         plt.close()
-
 
         #---------------------background length from consumption-----------------------#
         plotPairingLists(mice[i].mean_background_length_from_consumption_s,
                          mice[i].mean_background_length_from_consumption_l, curr_default, 'time')
         ax.set_title(f'{mice[i].name} background repeat from consumption bout')
+        background_patches(curr_default, mice[i], ax, x)
+        plt.tight_layout()
         if saving:
             plt.savefig(f'{mice[i].name} mean_background_length_from_consumption.svg')
         plt.close()
@@ -715,15 +745,18 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         plotPairingLists(mice[i].mean_background_lick_from_consumption_s,
                          mice[i].mean_background_lick_from_consumption_l, curr_default, 'count')
         ax.set_title(f'{mice[i].name} mean number of licks from previous consumption bout')
+        background_patches(curr_default, mice[i], ax, x)
+        plt.tight_layout()
         if saving:
             plt.savefig(f'{mice[i].name} mean_background_lick_from_consumption.svg')
         plt.close()
-
 
         #---------------------percentage lick bout from consumption extending into bg-----------------------#
         plotPairingLists(mice[i].perc_bout_into_background_s,
                          mice[i].perc_bout_into_background_l, curr_default, 'perc')
         ax.set_title(f'{mice[i].name} percentage of consumption bout that cross into next background')
+        background_patches(curr_default, mice[i], ax, x)
+        plt.tight_layout()
         if saving:
             plt.savefig(f'{mice[i].name} perc_bout_into_background.svg')
         plt.close()
@@ -790,8 +823,6 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         # Normalize the colors based on the range of values
       #  print(adjusted_optimal_default)
         colors = np.arange(len(adjusted_optimal_default))
-        #print(len(colors))
-
         norm = plt.Normalize(min(colors), max(colors))
         # Create the scatter plot with a gradient of colors
         plt.scatter(adjusted_optimal_default, optimal_default, c=colors, cmap=cmap, norm=norm, edgecolors='black')
@@ -812,13 +843,10 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
             adjusted_optimal_default = mice[i].session_adjusted_optimal[:mice[i].default_session_num]
             session_avg = mice[i].holding_l_mean[:mice[i].default_session_num]
         # Normalize the colors based on the range of values
-        #  print(adjusted_optimal_default)
         colors = np.arange(len(adjusted_optimal_default))
-
         norm = plt.Normalize(min(colors), max(colors))
         # Create the scatter plot with a gradient of colors
         plt.scatter(adjusted_optimal_default, session_avg, c=colors, cmap=cmap, norm=norm, edgecolors='black')
-
         x_d = np.linspace(0, 10, 1000)  # Adjust range as needed
         y_d = x_d  # Diagonal line where y equals x
 
