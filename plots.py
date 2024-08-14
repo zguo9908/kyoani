@@ -312,17 +312,14 @@ def background_patches(default, mouse, ax, x):
     else:
         base_color = 'blue'
         colors = ['lightblue', 'cyan', 'navy']
-
     # Create a color map
     color_map = {
         'learn': colors[0],
         'habituate': colors[1],
         'record': colors[2]
     }
-
-    # Set default background color
-    ax.axvspan(min(x), max(x), color=mcolors.to_rgba(base_color, alpha=0.3), zorder=0)
-    print(f"Added base background from {min(x)} to {max(x)}")
+    ax.axvspan(min(x) - 0.5, max(x) + 0.5, color=mcolors.to_rgba(base_color, alpha=0.15), zorder=0)
+    print(f"Added base background from {min(x) - 0.5} to {max(x) + 0.5}")
 
     # Calculate cumulative session numbers
     learn_end = mouse.learning_session_num
@@ -331,33 +328,25 @@ def background_patches(default, mouse, ax, x):
 
     # Add colored patches based on training stages
     if mouse.learning_session_num > 0:
-        ax.axvspan(min(x), learn_end, color=mcolors.to_rgba(color_map['learn'], alpha=0.5), zorder=1)
-        print(f"Added learning patch from {min(x)} to {learn_end}")
+        ax.axvspan(min(x) - 0.5, learn_end + 0.5, color=mcolors.to_rgba(color_map['learn'], alpha=0.2), zorder=1)
+        print(f"Added learning patch from {min(x) - 0.5} to {learn_end + 0.5}")
 
     if mouse.habituate_session_num > 0:
-        ax.axvspan(learn_end, habituate_end, color=mcolors.to_rgba(color_map['habituate'], alpha=0.5), zorder=1)
-        print(f"Added habituate patch from {learn_end} to {habituate_end}")
+        ax.axvspan(learn_end + 0.5, habituate_end + 0.5, color=mcolors.to_rgba(color_map['habituate'], alpha=0.2), zorder=1)
+        print(f"Added habituate patch from {learn_end + 0.5} to {habituate_end + 0.5}")
 
     if mouse.record_session_num > 0:
-        ax.axvspan(habituate_end, record_end, color=mcolors.to_rgba(color_map['record'], alpha=0.5), zorder=1)
-        print(f"Added record patch from {habituate_end} to {record_end}")
+        ax.axvspan(habituate_end + 0.5, record_end + 0.5, color=mcolors.to_rgba(color_map['record'], alpha=0.2), zorder=1)
+        print(f"Added record patch from {habituate_end + 0.5} to {record_end + 0.5}")
 
     # Add the reverse line
     ax.axvline(mouse.reverse_index + 0.5, color='black', linestyle='--', alpha=0.5, zorder=2)
     print(f"Added reverse line at {mouse.reverse_index + 0.5}")
 
     # Ensure the x-axis limits cover all sessions
-    ax.set_xlim(min(x), max(max(x), record_end))
-    print(f"Set x-axis limits to {min(x)} and {max(max(x), record_end)}")
-
-    # Add test rectangle
-    rect = plt.Rectangle((0, 0), 1, 1, fill=True, color='green', zorder=3)
-    ax.add_patch(rect)
-    print("Added test rectangle")
-
-    # Force the plot to update
-    plt.draw()
-    plt.pause(0.001)
+    ax.set_xlim(min(x) - 0.5, max(max(x), record_end) + 0.5)
+    print(f"Set x-axis limits to {min(x) - 0.5} and {max(max(x), record_end) + 0.5}")
+    ax.figure.canvas.draw()
     print("Forced plot update")
 
     # Print current axes limits
@@ -453,7 +442,7 @@ def plotTrialSplit(mouse, default):
     plt.close()
 
 
-def plotHoldingWithError(mouse, default, optimal_wait):
+def plot_avg_wait_time(mouse, default, optimal_wait):
     fig, ax = plt.subplots(figsize=(10, 5))
     if mouse.default_session_num > 0 and mouse.change_session_num > 0:
         list_pairs = [(mouse.holding_s_median, mouse.holding_l_median),
@@ -497,7 +486,7 @@ def plotHoldingWithError(mouse, default, optimal_wait):
             plt.plot(x, mouse.holding_s_median, 'bs', markersize=8, markerfacecolor='none')
             # plt.plot(x, mouse.holding_s_mean, 'bo', label='Short - mean', markersize=8, markerfacecolor='none')
             plt.step(x, mouse.optimal_wait, where='post', color='b', label='optimal_short')
-
+            plt.step(x, mouse.session_adjusted_optimal, where='post', color='lightblue', label='optimal_adjusted')
             plt.plot(significant_indices+1, significance_array[significant_indices], marker='*', color='blue',
                      linestyle='',
                      markersize=10, label='Significant')
@@ -514,6 +503,8 @@ def plotHoldingWithError(mouse, default, optimal_wait):
             plt.plot(x, mouse.holding_l_median, 'rs', markersize=8, markerfacecolor='none')
             plt.plot(x, mouse.holding_l_mean, 'ro', label='Long - mean', markersize=8, markerfacecolor='none')
             plt.step(x, mouse.optimal_wait, where='post', color='r', label='optimal_long')
+            plt.step(x, mouse.session_adjusted_optimal, where='post', color='lightcoral', label='optimal_adjusted')
+
 
             plt.plot(significant_indices+1, significance_array[significant_indices], marker='*', color='red',
                      linestyle='',
@@ -631,7 +622,7 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         # trial percentages
         plotTrialSplit(mice[i], curr_default)
         # holding time with error bars
-        plotHoldingWithError(mice[i], curr_default, optimal_wait)
+        plot_avg_wait_time(mice[i], curr_default, optimal_wait)
         # jittered daily distribution
         plotJitteredDist(mice[i], curr_default)
 
@@ -762,6 +753,8 @@ def rawPlots(mice, optimal_wait, task_params, has_block, saving):
         plt.close()
 
         # ---------------------percentage rewarded-----------------------#
+        print(mice[i].perc_rewarded_s)
+        print(mice[i].perc_rewarded_l)
         plotPairingLists(mice[i].perc_rewarded_s,
                          mice[i].perc_rewarded_l, curr_default, 'perc')
         ax.set_title(f'{mice[i].name} percent trial rewarded')

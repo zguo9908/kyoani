@@ -23,9 +23,15 @@ def generate_binary_reward_list(total_trials, rewarded_trials):
             binary_rewards[trial_number - 1] = 1  # Mark rewarded trials as 1
     return binary_rewards
 
-def getRewardedPerc(df, trial_num):
-    # print(df)
-    rewarded_trial = df.loc[(df['key'] == 'reward') & (df['value'] == 1) & (df['state'].shift(1) == 'in_wait')]
+
+def get_rewarded_perc(df, trial_num):
+    df['value'] = pd.to_numeric(df['value'], errors='coerce')
+    rewarded_condition = (
+            (df['key'] == 'reward') &
+            (df['value'].fillna(0).astype(float) == 1) &  # Handle NaN and compare as float
+            (df['state'].shift(1) == 'in_wait')
+    )
+    rewarded_trial = df.loc[rewarded_condition]
     trials_rewarded = rewarded_trial['session_trial_num'].tolist()
     loc_trials_rewarded = generate_binary_reward_list(trial_num, trials_rewarded)
     perc_rewarded_perf = len(rewarded_trial) / trial_num
@@ -33,7 +39,9 @@ def getRewardedPerc(df, trial_num):
 
 
 def getConsumptionStats(all_df, bout_interval, min_lick_count_consumption):
+    all_df['value'] = pd.to_numeric(all_df['value'], errors='coerce')
     df = all_df.loc[(all_df['key'] == 'lick') & (all_df['value'] == 1)]
+
     df = df.sort_values(by='session_time')
     df['time_diff'] = df['session_time'].diff()
     # Define start of a bout (time difference > bout_interval seconds)
@@ -110,7 +118,7 @@ def getConsumptionStats(all_df, bout_interval, min_lick_count_consumption):
     return (consumption_lengths, background_lengths, lick_counts_consumption, lick_counts_background,
             mean_consumption_length, mean_consumption_licks, mean_next_background_length, mean_background_licks,
             perc_bout_into_background)
-def getMissedTrials(df, trial_num):
+def get_missed_trials(df, trial_num):
     miss_trials = df.loc[(df['state'] == 'in_wait') &
                          (df['next_state'] == 'trial_ends') &
                          (df['key'] == 'wait')]
@@ -123,18 +131,15 @@ def getMissedTrials(df, trial_num):
         print('no missed trials!')
     return missed_perc, miss_trials, trials_missed, loc_trials_missed
 
-def getProbRewarded(df):
-    #prob_rewarded_licks = df[df['curr_reward_prob'].notna()]
-
+def get_prob_rewarded(df):
     df['curr_reward_prob'] = pd.to_numeric(df['curr_reward_prob'], errors='coerce')
-
-    # Create a boolean column indicating which values could be converted to float
     prob_rewarded_licks = ~df['curr_reward_prob'].isna()
     prob_rewarded_licks = prob_rewarded_licks.astype('float')
     mean_prob_at_lick = prob_rewarded_licks.mean()
     return mean_prob_at_lick
 
-def getBackgroundLicks(df, trial_num):
+def get_background_licks(df, trial_num):
+    df['value'] = pd.to_numeric(df['value'], errors='coerce')
     lick_at_bg = df.loc[((df['state'] == 'in_background') &
                              (df['key'] == 'lick') &
                              (df['value'] == 1))]
@@ -206,8 +211,6 @@ def getLickBoutsIntoBg(df, interval):
             'session_time'].sum()
         if background_length > 0:
             count_instances += 1
-
-
     # Display the lick bouts and count of instances
     print("Lick Bouts:")
     print(lick_bouts)
@@ -352,11 +355,10 @@ class Session:
 
     def process_selected_trials(self, trial_num, df, curr_opt_wait):
         # this function will process selected trials dataframe
-
-        blk_missed_perc, miss_trials, trials_missed, loc_trials_missed = getMissedTrials(df, trial_num)
+        blk_missed_perc, miss_trials, trials_missed, loc_trials_missed = get_missed_trials(df, trial_num)
         print(self.file_path)
-        mean_prob_at_lick = getProbRewarded(df)
-        perc_rewarded_perf, trials_rewarded, loc_trials_rewarded = getRewardedPerc(df, trial_num)
+        mean_prob_at_lick = get_prob_rewarded(df)
+        perc_rewarded_perf, trials_rewarded, loc_trials_rewarded = get_rewarded_perc(df, trial_num)
         all_licks = df.loc[(df['key'] == 'lick') & (df['value'] == 1)]
         # all_lick_time = all_licks.curr_wait_time
         print(df[df['key'] == 'lick'].dtypes)  # Check data types
@@ -457,7 +459,7 @@ class Session:
                 blk_cp['next_state'] = blk_cp['state'].shift(-1)
 
                 blk_bg_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats, mean_background_length = \
-                    getBackgroundLicks(blk_cp, blk_trial_num)
+                    get_background_licks(blk_cp, blk_trial_num)
                 # print(blk_trial_num == good_trials_num + len(trials_lick_at_bg))
 
                 blk_missed_perc, miss_trials, loc_trials_missed, mean_prob_at_lick, licks, lick_mean, \
@@ -542,8 +544,8 @@ class Session:
             # print(session_data_cp)
             # print('=======================end of the session data feed in===============================')
 
-            session_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, average_repeats, mean_background_length = \
-                getBackgroundLicks(session_data_cp, self.session_trial_num)
+            session_repeat_perc, trials_lick_at_bg, trials_good, good_trials_num, \
+            average_repeats, mean_background_length = get_background_licks(session_data_cp, self.session_trial_num)
 
             session_mean_reward_time = session_data.mean_reward_time.iloc[0]
             timescape_type = self.getTimescapeType(session_mean_reward_time)
