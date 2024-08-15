@@ -139,26 +139,6 @@ def plot_group_diff(g1, g2, categories, type, plot_patch, find_sig, plot_optimal
     return g1_mean, g2_mean
 
 
-def plot_all_animal_waiting(long_mice_list, long_session_mean, short_mice_list, short_session_mean ):
-    fig, ax = plt.subplots()
-    # Iterate through each sublist and plot it as a line
-    for mice, animal_sessions in zip(long_mice_list, long_session_mean):
-        # print(animal_sessions)
-        x = list(range(1, len(animal_sessions) + 1))  # Generate x values (1, 2, 3, ...)
-        y = animal_sessions
-        ax.plot(x, y, marker='o', label=mice)
-
-    for mice, animal_sessions in zip(short_mice_list, short_session_mean):
-        # print(animal_sessions)
-        x = list(range(1, len(animal_sessions) + 1))  # Generate x values (1, 2, 3, ...)
-        y = animal_sessions
-        ax.plot(x, y, marker='o', label=mice)
-    # Customize the plot
-    ax.set_xlabel('sessions')
-    ax.set_ylabel('mean waiting time')
-    ax.legend()
-    plt.savefig('all animal waiting.svg')
-
 def adjust_color_intensity(color, factor):
     r, g, b = mcolors.to_rgb(color)
     # Ensure color gets denser for later sessions
@@ -236,8 +216,7 @@ def plot_all_animal_scatter(mice, has_block, task_params):
     # Plotting the diagonal line
     plt.plot(x_d, y_d, label='y = x')
     plt.gca().set_aspect('equal', adjustable='box')
-    # Creating legend handles for red colors and blue colors
-    # Creating legend handles for red colors and blue colors
+
     red_handles = [mpatches.Patch(color='red', label='Long Cohort')]
     blue_handles = [mpatches.Patch(color='blue', label='Short Cohort')]
 

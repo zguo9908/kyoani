@@ -32,7 +32,7 @@ print(f'optimal wait time for long timescape is {optimal_wait_long}')
 optimal_wait = [optimal_wait_short, optimal_wait_long]
 
 params_dict = {"m1": m1, "p1": p1, "bg1": bg1, "m2": m2, "p2": p2, "bg2": bg2}
-need_checkpoint = False
+need_checkpoint = True
 if __name__ == '__main__':
     beh = BehaviorAnalysis("exp1", optimal_wait, params_dict, task_type=task_type,
                            has_block=has_block, task_params=task_params)

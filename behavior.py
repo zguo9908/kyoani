@@ -213,6 +213,7 @@ class BehaviorAnalysis:
                     'adjusted_optimal':[]
                 }
             grouped_data[group_key]['mice_list'].append(mouse)
+            grouped_data[group_key]['learning_session_nums'].append(self.mice[i].learning_session_num)
             if len(grouped_data[group_key]['optimal_time']) < len(self.mice[i].optimal_wait):
                 grouped_data[group_key]['optimal_time'] = self.mice[i].optimal_wait
 
@@ -337,10 +338,7 @@ class BehaviorAnalysis:
         variables = self.get_groups(default_only, num_before_transition, has_single_housing)
         variables = [var for var in variables if var is not None]
 
-        plots.plot_all_animal_waiting(variables[0]['timescape_long_mice_list'],
-                                      variables[0]['timescape_long_session_mean'],
-                                      variables[0]['timescape_short_mice_list'],
-                                      variables[0]['timescape_short_session_mean'])
+        self.plot_all_animal_waiting(variables, align_habituation=True, look_back=10)
 
         plot_patch = False if default_only else True
         for i in range(len(groupings_in_use)):
@@ -712,3 +710,60 @@ class BehaviorAnalysis:
             plt.savefig(f'default only {default_only} grouped {cohort_avg} last {n} differences of statistics.svg')
             plt.close()
 
+    from itertools import cycle
+
+    def plot_all_animal_waiting(grouped_data, align_habituation=False, look_back=10):
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        # Manually define specific colors for the red and blue families
+        red_family_colors = ['#FF00FF', '#FFC0CB', '#F08080', '#FA8072',
+                             '#DC143C']  # Magenta, Pink, Light Coral, Salmon, Crimson
+        blue_family_colors = ['#00FFFF', '#87CEEB', '#4169E1', '#0047AB',
+                              '#000080']  # Cyan, Sky Blue, Royal Blue, Cobalt, Navy
+
+        def plot_aligned_data(group_key):
+            mice_list = grouped_data[group_key]['mice_list']
+            session_mean = grouped_data[group_key]['session_mean']
+            learning_session_nums = grouped_data[group_key]['learning_session_nums']
+
+            # Choose color family based on group
+            color_family = blue_family_colors if group_key == 'long' else red_family_colors
+            color_cycle = cycle(color_family)
+
+            for mouse_name, animal_sessions, learning_num in zip(mice_list, session_mean, learning_session_nums):
+                if align_habituation:
+                    hab_start = learning_num + 1
+                    start_index = max(0, hab_start - look_back)
+                    end_index = len(animal_sessions)
+
+                    x = list(range(-min(look_back, hab_start), end_index - hab_start + 1))
+                    y = animal_sessions[start_index:end_index]
+                else:
+                    x = list(range(1, len(animal_sessions) + 1))
+                    y = animal_sessions
+
+                color = next(color_cycle)
+                ax.plot(x, y, marker='o', label=f"{group_key}: {mouse_name}", alpha=0.7, color=color)
+
+        # Plot long and short cohort data
+        plot_aligned_data('long')
+        plot_aligned_data('short')
+
+        ax.set_xlabel('Sessions relative to habituation start' if align_habituation else 'Sessions')
+        ax.set_ylabel('Mean waiting time')
+        ax.set_title('All Animal Waiting Times' +
+                     (' (Aligned by Habituation Start)' if align_habituation else ''))
+
+        if align_habituation:
+            ax.axvline(x=0, color='green', linestyle='--', label='Habituation Start')
+            ax.set_xlim(left=-look_back)
+
+        # Adjust legend
+        handles, labels = ax.get_legend_handles_labels()
+        lgd = ax.legend(handles, labels, bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
+
+        plt.tight_layout()
+        plt.savefig(
+            'all_animal_waiting_multicolor_aligned.svg' if align_habituation else 'all_animal_waiting_multicolor.svg',
+            bbox_inches='tight', bbox_extra_artists=(lgd,))
+        plt.close()
