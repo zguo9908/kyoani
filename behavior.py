@@ -3,6 +3,7 @@ import os
 import seaborn as sns
 from matplotlib import pyplot as plt
 from statsmodels.formula.api import mixedlm
+from itertools import cycle
 
 import plots
 import utils
@@ -190,15 +191,17 @@ class BehaviorAnalysis:
     def organize_mice_data(self, grouping_criteria, default_only, num_before_transition):
         grouped_data = {}
         for i in range(len(self.mice)):
-            mouse = self.mice[i].name
+            mouse = self.mice[i]
             if grouping_criteria != 'timescape':
-                group_key = self.animal_assignment.get(mouse, [])[0].get(grouping_criteria, {})[0]
+                group_key = self.animal_assignment.get(mouse.name, [])[0].get(grouping_criteria, {})[0]
             else:
-                group_key = self.animal_assignment.get(mouse, [])[0].get("timescape", {}).get("default", [])[0]
+                group_key = self.animal_assignment.get(mouse.name, [])[0].get("timescape", {}).get("default", [])[0]
          #   print(f'current group key is {group_key} under {grouping_criteria}')
             if group_key not in grouped_data:
                 grouped_data[group_key] = {
                     'mice_list': [],
+                    'learning_session_num':[],
+                    'habituate_session_num':[],
                     'optimal_time': [],
                     'session_mean': [],
                     'session_nonimpulsive_mean': [],
@@ -212,8 +215,9 @@ class BehaviorAnalysis:
                     'missing_perc': [],
                     'adjusted_optimal':[]
                 }
-            grouped_data[group_key]['mice_list'].append(mouse)
-            grouped_data[group_key]['learning_session_nums'].append(self.mice[i].learning_session_num)
+            grouped_data[group_key]['mice_list'].append(mouse.name)
+            grouped_data[group_key]['learning_session_num'].append(mouse.learning_session_num)
+            grouped_data[group_key]['habituate_session_num'].append(mouse.habituate_session_num)
             if len(grouped_data[group_key]['optimal_time']) < len(self.mice[i].optimal_wait):
                 grouped_data[group_key]['optimal_time'] = self.mice[i].optimal_wait
 
@@ -310,13 +314,16 @@ class BehaviorAnalysis:
 
         time_attributes = ['mice_list', 'optimal_time', 'session_mean', 'session_nonimpulsive_mean', 'consumption_length',
                            'mean_reward_rate', 'bg_repeat', 'impulsive_perc', 'all_licks_by_session',
-                           'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal']
+                           'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal','learning_session_num',
+                           'habituate_session_num']
         sex_attributes = ['mice_list', 'optimal_time', 'session_mean', 'session_nonimpulsive_mean', 'consumption_length',
                           'mean_reward_rate', 'bg_repeat', 'impulsive_perc', 'all_licks_by_session',
-                          'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal']
+                          'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal','learning_session_num',
+                          'habituate_session_num']
         housing_attributes = ['mice_list', 'session_mean', 'session_nonimpulsive_mean', 'consumption_length',
                               'mean_reward_rate', 'bg_repeat', 'impulsive_perc', 'all_licks_by_session',
-                              'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal']
+                              'bg_repeat_times', 'bg_length', 'missing_perc', 'adjusted_optimal','learning_session_num',
+                              'habituate_session_num']
 
         time_variables = process_groups(groups_by_timescape, 'timescape', time_attributes)
         sex_variables = process_groups(groups_by_sex, 'sex', sex_attributes)
@@ -338,7 +345,10 @@ class BehaviorAnalysis:
         variables = self.get_groups(default_only, num_before_transition, has_single_housing)
         variables = [var for var in variables if var is not None]
 
-        self.plot_all_animal_waiting(variables, align_habituation=True, look_back=10)
+        # To align by habituation start
+        plot_all_animal_waiting(variables, align_by='habituation', look_back=10)
+        # To align by recording start and exclude habituation sessions
+        plot_all_animal_waiting(variables, align_by='recording', look_back=10)
 
         plot_patch = False if default_only else True
         for i in range(len(groupings_in_use)):
@@ -710,60 +720,83 @@ class BehaviorAnalysis:
             plt.savefig(f'default only {default_only} grouped {cohort_avg} last {n} differences of statistics.svg')
             plt.close()
 
-    from itertools import cycle
 
-    def plot_all_animal_waiting(grouped_data, align_habituation=False, look_back=10):
-        fig, ax = plt.subplots(figsize=(12, 8))
+import matplotlib.pyplot as plt
+from itertools import cycle
 
-        # Manually define specific colors for the red and blue families
-        red_family_colors = ['#FF00FF', '#FFC0CB', '#F08080', '#FA8072',
-                             '#DC143C']  # Magenta, Pink, Light Coral, Salmon, Crimson
-        blue_family_colors = ['#00FFFF', '#87CEEB', '#4169E1', '#0047AB',
-                              '#000080']  # Cyan, Sky Blue, Royal Blue, Cobalt, Navy
 
-        def plot_aligned_data(group_key):
-            mice_list = grouped_data[group_key]['mice_list']
-            session_mean = grouped_data[group_key]['session_mean']
-            learning_session_nums = grouped_data[group_key]['learning_session_nums']
+def plot_all_animal_waiting(variables, align_by='recording', look_back=10, filename_prefix='all_animal_waiting'):
+    fig, ax = plt.subplots(figsize=(12, 8))
 
-            # Choose color family based on group
-            color_family = blue_family_colors if group_key == 'long' else red_family_colors
-            color_cycle = cycle(color_family)
+    red_family_colors = ['#FF00FF', '#FFC0CB', '#F08080', '#FA8072', '#DC143C']
+    blue_family_colors = ['#00FFFF', '#87CEEB', '#4169E1', '#0047AB', '#000080']
 
-            for mouse_name, animal_sessions, learning_num in zip(mice_list, session_mean, learning_session_nums):
-                if align_habituation:
-                    hab_start = learning_num + 1
-                    start_index = max(0, hab_start - look_back)
-                    end_index = len(animal_sessions)
+    def plot_aligned_data(group_key, data):
+        mice_list = data[f'timescape_{group_key}_mice_list']
+        session_mean = data[f'timescape_{group_key}_session_mean']
+        learning_session_nums = data[f'timescape_{group_key}_learning_session_num']
+        habituating_session_nums = data[f'timescape_{group_key}_habituate_session_num']
 
-                    x = list(range(-min(look_back, hab_start), end_index - hab_start + 1))
-                    y = animal_sessions[start_index:end_index]
-                else:
-                    x = list(range(1, len(animal_sessions) + 1))
-                    y = animal_sessions
+        color_family = blue_family_colors if group_key == 'short' else red_family_colors
+        color_cycle = cycle(color_family)
 
-                color = next(color_cycle)
-                ax.plot(x, y, marker='o', label=f"{group_key}: {mouse_name}", alpha=0.7, color=color)
+        for i, (mouse_name, animal_sessions, learning_num, habituating_num) in enumerate(
+                zip(mice_list, session_mean, learning_session_nums, habituating_session_nums)):
+            print(f"\nProcessing mouse {mouse_name} ({group_key}):")
+            print(f"  Total sessions: {len(animal_sessions)}")
+            print(f"  Learning sessions: {learning_num}")
+            print(f"  Habituation sessions: {habituating_num}")
 
-        # Plot long and short cohort data
-        plot_aligned_data('long')
-        plot_aligned_data('short')
+            if align_by == 'recording':
+                align_point = learning_num + habituating_num
+            else:  # align by habituation
+                align_point = learning_num
 
-        ax.set_xlabel('Sessions relative to habituation start' if align_habituation else 'Sessions')
-        ax.set_ylabel('Mean waiting time')
-        ax.set_title('All Animal Waiting Times' +
-                     (' (Aligned by Habituation Start)' if align_habituation else ''))
+            print(f"  Alignment point: {align_point}")
 
-        if align_habituation:
-            ax.axvline(x=0, color='green', linestyle='--', label='Habituation Start')
-            ax.set_xlim(left=-look_back)
+            start_index = max(0, align_point - look_back)
+            end_index = len(animal_sessions)
 
-        # Adjust legend
-        handles, labels = ax.get_legend_handles_labels()
-        lgd = ax.legend(handles, labels, bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
+            if align_by == 'recording':
+                learning_sessions = animal_sessions[:learning_num]
+                habituation_sessions = animal_sessions[learning_num:align_point]
+                recording_sessions = animal_sessions[align_point:]
 
-        plt.tight_layout()
-        plt.savefig(
-            'all_animal_waiting_multicolor_aligned.svg' if align_habituation else 'all_animal_waiting_multicolor.svg',
-            bbox_inches='tight', bbox_extra_artists=(lgd,))
-        plt.close()
+                print(f"  Learning sessions: {len(learning_sessions)}")
+                print(f"  Habituation sessions: {len(habituation_sessions)}")
+                print(f"  Recording sessions: {len(recording_sessions)}")
+
+                selected_sessions = learning_sessions[-look_back:] + recording_sessions
+                x = list(range(-len(learning_sessions[-look_back:]), len(recording_sessions)))
+            else:
+                x = list(range(-min(look_back, align_point), end_index - align_point))
+                selected_sessions = animal_sessions[start_index:]
+
+            y = selected_sessions
+
+            print(f"  Selected sessions: {len(selected_sessions)}")
+            print(f"  X-axis range: {min(x)} to {max(x)}")
+
+            color = next(color_cycle)
+            ax.plot(x, y, marker='o', label=f"{group_key}: {mouse_name}", alpha=0.7, color=color)
+
+    timescape_data = variables[0]  # Assuming timescape is the first grouping
+    plot_aligned_data('long', timescape_data)
+    plot_aligned_data('short', timescape_data)
+
+    ax.set_xlabel('Sessions relative to alignment point')
+    ax.set_ylabel('Mean waiting time')
+    ax.set_title(f'All Animal Waiting Times (Aligned by {align_by.capitalize()} Start)')
+
+    ax.axvline(x=0, color='green', linestyle='--', label='Alignment Point')
+    ax.set_xlim(left=-look_back)
+
+    handles, labels = ax.get_legend_handles_labels()
+    lgd = ax.legend(handles, labels, bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
+
+    plt.tight_layout()
+    filename = f'{filename_prefix}_multicolor_aligned_{align_by}.svg'
+    plt.savefig(filename, bbox_inches='tight', bbox_extra_artists=(lgd,))
+    plt.close()
+
+    print(f"\nPlotting completed successfully. Figure saved as '{filename}'")
